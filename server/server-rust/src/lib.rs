@@ -75,6 +75,27 @@ pub fn delete_old_tweets(ctx: &ReducerContext, _timer: CleanupTimer) -> Result<(
     Ok(())
 }
 
+// New reducer to delete tweets by topic
+#[spacetimedb::reducer]
+pub fn delete_tweets_by_topic(ctx: &ReducerContext, topic: String) -> Result<(), String> {
+    // Collect all tweets with the specified topic first
+    let tweets_to_delete: Vec<Tweet> = ctx.db.tweet()
+        .iter()
+        .filter(|tweet| 
+            tweet.topic.as_ref().map(|t| t == &topic).unwrap_or(false)
+        )
+        .collect();
+
+    let deleted_count = tweets_to_delete.len();
+    
+    // Delete each matching tweet
+    for tweet in tweets_to_delete {
+        ctx.db.tweet().delete(tweet);
+    }
+    
+    Ok(())
+}
+
 // Initialize the scheduled cleanup when the module is first deployed
 #[spacetimedb::reducer(init)]
 pub fn init(ctx: &ReducerContext) -> Result<(), String> {
