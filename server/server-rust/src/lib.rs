@@ -19,7 +19,7 @@ pub struct Tweet {
     #[index(btree)]
     pub created_at: Timestamp,
     #[index(btree)]
-    pub topic: Option<String>,
+    pub topic: String,
 }
 
 // Scheduled table for cleanup
@@ -40,7 +40,7 @@ pub fn insert_tweet(
     lat: f64,
     lon: f64,
     created_at: Timestamp,
-    topic: Option<String>,
+    topic: String,
 ) -> Result<(), String> {
     let t = Tweet {
         row_id: 0,
@@ -82,7 +82,7 @@ pub fn delete_tweets_by_topic(ctx: &ReducerContext, topic: String) -> Result<(),
     let tweets_to_delete: Vec<Tweet> = ctx.db.tweet()
         .iter()
         .filter(|tweet| 
-            tweet.topic.as_ref().map(|t| t == &topic).unwrap_or(false)
+            tweet.topic == topic
         )
         .collect();
 

@@ -130,7 +130,7 @@ async function connectSpacetime(): Promise<any> {
     try {
       DbConnection.builder()
         .withUri("https://maincloud.spacetimedb.com")
-        .withModuleName("hophack")
+        .withModuleName("tweetsv2")
         .onConnect((connection, identity, token) => {
           console.log("✅ DB connected via onConnect");
           resolve(connection); // resolve the promise when ready
@@ -311,7 +311,7 @@ app.get("/api/trends", async (_req: Request, res: Response) => {
 
 app.get("/api/tweets", (_req: Request, res: Response) => {
   try {
-    const tweetsTable = db.db.tweets;
+    const tweetsTable = db.db.tweet;
     const rows = Array.from(tweetsTable.iter()); // all subscribed rows
     res.json(rows);
   } catch (err) {
@@ -323,9 +323,52 @@ app.get("/api/tweets", (_req: Request, res: Response) => {
 app.get("/api/tweets/:topic", (req: Request, res: Response) => {
   try {
     const topic = req.params.topic;
-    const tweetsTable = db.db.tweets;
+    console.log("Requested topic:", topic);
+    const tweetsTable = db.db.tweet;
+    
+    // Filter tweets by topic
     const rows = Array.from(tweetsTable.iter()).filter(r => r.topic === topic);
-    res.json(rows);
+    console.log(`Found ${rows.length} tweets for topic '${topic}'`);
+    
+    // Define a recursive function to handle nested BigInt values
+    function processBigIntValues(obj: any): any {
+      if (obj === null || obj === undefined) {
+        return obj;
+      }
+      
+      if (typeof obj === 'bigint') {
+        return obj.toString();
+      }
+      
+      if (Array.isArray(obj)) {
+        return obj.map(item => processBigIntValues(item));
+      }
+      
+      if (typeof obj === 'object') {
+        const result: Record<string, any> = {};
+        for (const [key, value] of Object.entries(obj)) {
+          result[key] = processBigIntValues(value);
+        }
+        return result;
+      }
+      
+      return obj;
+    }
+    
+    // Process all rows to handle BigInt values
+    const serializedRows = rows.map(row => processBigIntValues(row));
+    
+    // Use a custom replacer function for JSON.stringify
+    const safeStringify = (obj: any) => {
+      return JSON.stringify(obj, (_, value) => 
+        typeof value === 'bigint' ? value.toString() : value
+      );
+    };
+    
+    // Send the response with the safe stringifier
+    res.setHeader('Content-Type', 'application/json');
+    res.send(safeStringify(serializedRows));
+    
   } catch (err) {
     console.error(`/api/tweets/${req.params.topic} error:`, err);
     res.status(500).json({ error: "Failed to fetch topic tweets" });
@@ -336,7 +379,7 @@ async function init() {
     try {
         db = await connectSpacetime();
         console.log("connected to spacetime");
-        const tweetsTable = db.db.tweets; // table handle
+        const tweetsTable = db.db.tweet; // table handle
         db.subscriptionBuilder()
             .onApplied((ctx: any) => {
             console.log(`Subscription applied: ${tweetsTable.count()} rows in cache`);
@@ -344,10 +387,10 @@ async function init() {
             .onError((err: any) => {
             console.error("Tweet subscription error:", err);
             })
-            .subscribe(["SELECT * FROM tweets"]);
-        await updateTrends();
-        setInterval(updateTrends, 60_000_000);
-        console.log("initialized");
+            .subscribe(["SELECT * FROM tweet"]);
+        // await updateTrends();
+        // setInterval(updateTrends, 60_000_000);
+        // console.log("initialized");
     } catch (err) {
         console.error('error while initializing', err);
         process.exit(1);

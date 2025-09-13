@@ -41,7 +41,7 @@ export type Tweet = {
   username: string,
   location: __GeoPoint,
   createdAt: Timestamp,
-  topic: string | undefined,
+  topic: string,
 };
 
 /**
@@ -60,7 +60,7 @@ export namespace Tweet {
       new ProductTypeElement("username", AlgebraicType.createStringType()),
       new ProductTypeElement("location", __GeoPoint.getTypeScriptAlgebraicType()),
       new ProductTypeElement("createdAt", AlgebraicType.createTimestampType()),
-      new ProductTypeElement("topic", AlgebraicType.createOptionType(AlgebraicType.createStringType())),
+      new ProductTypeElement("topic", AlgebraicType.createStringType()),
     ]);
   }
 

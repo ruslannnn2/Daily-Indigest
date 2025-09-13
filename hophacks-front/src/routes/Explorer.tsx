@@ -1,4 +1,4 @@
-import React, { useEffect } from 'react';
+import React, { useEffect, useState } from 'react';
 import GlobeMapbox from '../components/GlobeMapbox';
 import Sidebar from '../components/Sidebar';
 import HoverInfoPanel from '../components/HoverInfoPanel';
@@ -11,16 +11,35 @@ const Explorer: React.FC = () => {
   // Using a fixed data source for now - will be updated when fetching real data
   const data = DEFAULT_DATA_URL;
 
+  const [trends, setTrends] = useState<string[]>([]);
+
   // Define initial view state to set orientation
   const initialViewState = {
     longitude: -95, 
     latitude: 40,
-    zoom: 4.5,
+    zoom: 4.7,
     pitch: 0, 
     bearing: 0,
 
     transitionDuration: 0
   };
+
+  //   const fetchTrends = async () => {
+  //   try {
+  //     const response = await fetch("http://localhost:3000/api/tweets/Clemson");
+  //     const data = await response.json();
+  //     setTrends(data);
+  //     console.log("Fetched tweets:", data);
+  //   } catch (error) {
+  //     console.error("Error fetching tweets:", error);
+  //   }
+  // };
+
+  //     React.useEffect(() => {
+  //       fetchTrends();
+  //     }, []);
+
+
 
   useEffect(() => {
     console.log("Explorer component loaded with data source:", data);

@@ -27,7 +27,11 @@ Example 1: {"text": "Just landed in Paris for the summer!", "location_values": "
 
 Example 2: {"text": "i am who i am", "location_values": "in your walls"}, output: "Unknown"
 
-Example 3: {"text": "The game today was amazing!", "location_values": "user/location: Memphis, Tennessee; media/location: San Francisco, California"}, output: "San Francisco, CA"
+Example 3: {"text": "I love programming!", "location_values": "web3, metaverse"}, output: "Unknown"
+
+Example 4: {"text": "Exploring the beautiful beaches of Bali.", "location_values": "Indonesia"}, output: "Bali, Indonesia"
+
+Example 5: {"text": "The game today was amazing!", "location_values": "user/location: Memphis, Tennessee; media/location: San Francisco, California"}, output: "San Francisco, California, USA"
 """
 CACHE_FILE = Path("geocache.csv")
 

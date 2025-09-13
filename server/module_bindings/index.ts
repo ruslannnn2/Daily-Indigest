@@ -159,7 +159,7 @@ export class RemoteReducers {
     this.connection.offReducer("delete_tweets_by_topic", callback);
   }
 
-  insertTweet(tweetId: string, content: string, username: string, lat: number, lon: number, createdAt: Timestamp, topic: string | undefined) {
+  insertTweet(tweetId: string, content: string, username: string, lat: number, lon: number, createdAt: Timestamp, topic: string) {
     const __args = { tweetId, content, username, lat, lon, createdAt, topic };
     let __writer = new BinaryWriter(1024);
     InsertTweet.getTypeScriptAlgebraicType().serialize(__writer, __args);
@@ -167,11 +167,11 @@ export class RemoteReducers {
     this.connection.callReducer("insert_tweet", __argsBuffer, this.setCallReducerFlags.insertTweetFlags);
   }
 
-  onInsertTweet(callback: (ctx: ReducerEventContext, tweetId: string, content: string, username: string, lat: number, lon: number, createdAt: Timestamp, topic: string | undefined) => void) {
+  onInsertTweet(callback: (ctx: ReducerEventContext, tweetId: string, content: string, username: string, lat: number, lon: number, createdAt: Timestamp, topic: string) => void) {
     this.connection.onReducer("insert_tweet", callback);
   }
 
-  removeOnInsertTweet(callback: (ctx: ReducerEventContext, tweetId: string, content: string, username: string, lat: number, lon: number, createdAt: Timestamp, topic: string | undefined) => void) {
+  removeOnInsertTweet(callback: (ctx: ReducerEventContext, tweetId: string, content: string, username: string, lat: number, lon: number, createdAt: Timestamp, topic: string) => void) {
     this.connection.offReducer("insert_tweet", callback);
   }
 

@@ -40,7 +40,7 @@ export type InsertTweet = {
   lat: number,
   lon: number,
   createdAt: Timestamp,
-  topic: string | undefined,
+  topic: string,
 };
 
 /**
@@ -59,7 +59,7 @@ export namespace InsertTweet {
       new ProductTypeElement("lat", AlgebraicType.createF64Type()),
       new ProductTypeElement("lon", AlgebraicType.createF64Type()),
       new ProductTypeElement("createdAt", AlgebraicType.createTimestampType()),
-      new ProductTypeElement("topic", AlgebraicType.createOptionType(AlgebraicType.createStringType())),
+      new ProductTypeElement("topic", AlgebraicType.createStringType()),
     ]);
   }
 
