@@ -10,8 +10,18 @@
     "preview": "vite preview"
   },
   "dependencies": {
+    "@deck.gl/geo-layers": "^9.1.14",
+    "@deck.gl/layers": "^9.1.14",
+    "@deck.gl/mapbox": "^9.1.14",
+    "@deck.gl/react": "^9.1.14",
+    "@tailwindcss/vite": "^4.1.13",
+    "deck.gl": "^9.1.14",
+    "mapbox-gl": "^3.15.0",
+    "maplibre-gl": "^5.7.1",
     "react": "^19.1.1",
-    "react-dom": "^19.1.1"
+    "react-dom": "^19.1.1",
+    "react-map-gl": "^8.0.4",
+    "tailwindcss": "^4.1.13"
   },
   "devDependencies": {
     "@eslint/js": "^9.33.0",
