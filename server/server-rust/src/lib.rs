@@ -1,4 +1,4 @@
-use spacetimedb::{ReducerContext, SpacetimeType, Timestamp, Table, TimeDuration};
+use spacetimedb::{ReducerContext, SpacetimeType, Timestamp, Table, TimeDuration, ScheduleAt};
 
 #[derive(SpacetimeType, Clone, Debug)]
 pub struct GeoPoint {
@@ -22,6 +22,15 @@ pub struct Tweet {
     pub topic: Option<String>,
 }
 
+// Scheduled table for cleanup
+#[spacetimedb::table(name = cleanup_timer, scheduled(delete_old_tweets))]
+pub struct CleanupTimer {
+    #[primary_key]
+    #[auto_inc]
+    pub scheduled_id: u64,
+    pub scheduled_at: ScheduleAt,
+}
+
 #[spacetimedb::reducer]
 pub fn insert_tweet(
     ctx: &ReducerContext,
@@ -43,21 +52,22 @@ pub fn insert_tweet(
         topic,
     };
 
-    ctx.db.tweet().try_insert(t);
-
+    ctx.db.tweet().try_insert(t)?;
     Ok(())
 }
 
 #[spacetimedb::reducer]
-pub fn delete_old_tweets(ctx: &ReducerContext) -> Result<(), String> {
+pub fn delete_old_tweets(ctx: &ReducerContext, _timer: CleanupTimer) -> Result<(), String> {
     let twenty_four_hours_in_micros = 24 * 60 * 60 * 1000 * 1000;
     let cutoff_time = ctx.timestamp - TimeDuration::from_micros(twenty_four_hours_in_micros);
 
+    // Collect all old tweets first
     let old_tweets: Vec<Tweet> = ctx.db.tweet()
         .iter()
         .filter(|tweet| tweet.created_at < cutoff_time)
         .collect();
 
+    // Delete each old tweet
     for tweet in old_tweets {
         ctx.db.tweet().delete(tweet);
     }
@@ -65,19 +75,14 @@ pub fn delete_old_tweets(ctx: &ReducerContext) -> Result<(), String> {
     Ok(())
 }
 
+// Initialize the scheduled cleanup when the module is first deployed
 #[spacetimedb::reducer(init)]
-pub fn init(ctx: &ReducerContext) {
-    start_periodic_cleanup(ctx);
-}
-
-#[spacetimedb::reducer]
-pub fn start_periodic_cleanup(ctx: &ReducerContext) -> Result<(), String> {
-    delete_old_tweets(ctx)?;
+pub fn init(ctx: &ReducerContext) -> Result<(), String> {
+    // Schedule cleanup to run every 10 minutes (600,000,000 microseconds)
+    ctx.db.cleanup_timer().try_insert(CleanupTimer {
+        scheduled_id: 0,
+        scheduled_at: ScheduleAt::Interval(TimeDuration::from_micros(600_000_000)),
+    })?;
     
     Ok(())
-}
-
-#[spacetimedb::reducer]
-pub fn run_scheduled_cleanup(ctx: &ReducerContext) -> Result<(), String> {
-    delete_old_tweets(ctx)
 }
