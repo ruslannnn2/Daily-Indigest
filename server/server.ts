@@ -125,13 +125,21 @@ async function sendToPythonAPI(tweet: any, locationData: LocationField[]): Promi
     }
 }
 
-async function connectSpacetime() {
-    const db = await DbConnection.builder()
+async function connectSpacetime(): Promise<any> {
+  return new Promise((resolve, reject) => {
+    try {
+      DbConnection.builder()
         .withUri("https://maincloud.spacetimedb.com")
         .withModuleName("hophack")
+        .onConnect((connection, identity, token) => {
+          console.log("✅ DB connected via onConnect");
+          resolve(connection); // resolve the promise when ready
+        })
         .build();
-    console.log("connected to SpacetimeDB");
-    return db;
+    } catch (err) {
+      reject(err);
+    }
+  });
 }
 
 // Add db parameter to fetchTweets function
@@ -303,7 +311,7 @@ app.get("/api/trends", async (_req: Request, res: Response) => {
 
 app.get("/api/tweets", (_req: Request, res: Response) => {
   try {
-    const tweetsTable = db.db.tweets();
+    const tweetsTable = db.db.tweets;
     const rows = Array.from(tweetsTable.iter()); // all subscribed rows
     res.json(rows);
   } catch (err) {
@@ -315,7 +323,7 @@ app.get("/api/tweets", (_req: Request, res: Response) => {
 app.get("/api/tweets/:topic", (req: Request, res: Response) => {
   try {
     const topic = req.params.topic;
-    const tweetsTable = db.db.tweets();
+    const tweetsTable = db.db.tweets;
     const rows = Array.from(tweetsTable.iter()).filter(r => r.topic === topic);
     res.json(rows);
   } catch (err) {
@@ -328,7 +336,7 @@ async function init() {
     try {
         db = await connectSpacetime();
         console.log("connected to spacetime");
-        const tweetsTable = db.db.tweets(); // table handle
+        const tweetsTable = db.db.tweets; // table handle
         db.subscriptionBuilder()
             .onApplied((ctx: any) => {
             console.log(`Subscription applied: ${tweetsTable.count()} rows in cache`);
