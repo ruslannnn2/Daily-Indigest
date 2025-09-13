@@ -14,6 +14,11 @@ dotenv.config();
 const TOKEN = process.env.apify_token;
 const ACTOR = process.env.apify_actor;
 
+let db: any;
+const topicWatchers: Map<string, NodeJS.Timeout> = new Map();
+let trendingTopics: string[] = [];
+let cachedTweets: any[] = [];
+
 const app = express();
 app.use(express.json());
 app.use(cors());
@@ -87,6 +92,10 @@ function extractTweetText(tweet: any): string {
     } catch (error) {
         return "Unable to extract text from tweet";
     }
+}
+
+async function dropTopic(db: any, topic: string) {
+    await db.reducers.deleteTweetsByTopic(topic);
 }
 
 // Function to send tweet data to Python API
@@ -201,19 +210,6 @@ async function fetchTweets(db: any, topic: string) {
     }
 }
 
-// Initialize and start the process
-async function main() {
-    try {
-        const db = await connectSpacetime();
-        // Pass db to fetchTweets
-        // await fetchTweets(db, "UCLA");
-    } catch (error) {
-        console.error('Error in main process:', error);
-    }
-}
-
-let trendingTopics: string[] = [];
-
 // Scrape function
 async function scrapeTrends(): Promise<string[]> {
   try {
@@ -233,36 +229,126 @@ async function scrapeTrends(): Promise<string[]> {
   }
 }
 
-// Background updater
 async function updateTrends() {
   try {
     const newTopics = await scrapeTrends();
-    trendingTopics = newTopics;
-  } catch (error) {
-    console.error("Failed to update trends:", error);
+    await reconcileWatchers(newTopics);
+  } catch (err) {
+    console.error('updateTrends error:', err);
   }
 }
 
-// Schedule updates every 60s
-setInterval(updateTrends, 60_000);
+function startWatcherForTopic(topic: string) {
+  if (topicWatchers.has(topic)) return; // already watching
+  console.log(`▶️ startWatcher: ${topic}`);
+
+  // immediate backfill (do not await — but catch errors)
+  fetchTweets(db, topic).catch(err => console.error(`[watcher:${topic}] initial fetch error`, err));
+
+  // repeating collection every minute
+  const interval = setInterval(() => {
+    fetchTweets(db, topic).catch(err => console.error(`[watcher:${topic}] interval fetch error`, err));
+  }, 60_000);
+
+  topicWatchers.set(topic, interval);
+}
+
+async function stopWatcherForTopic(topic: string) {
+  console.log(`⏹ stopWatcher: ${topic}`);
+  const interval = topicWatchers.get(topic);
+  if (interval) {
+    clearInterval(interval);
+    topicWatchers.delete(topic);
+  }
+
+  // drop topic data from DB
+  try {
+    await dropTopic(db, topic);
+  } catch (err) {
+    console.error(`[stopWatcher:${topic}] error dropping data:`, err);
+  }
+}
+
+async function reconcileWatchers(newTopics: string[]) {
+  const oldSet = new Set(trendingTopics);
+
+  // STOP watchers for topics that are no longer in newTopics
+  for (const oldTopic of oldSet) {
+    if (!newTopics.includes(oldTopic)) {
+      await stopWatcherForTopic(oldTopic);
+    }
+  }
+
+  // START watchers for topics newly appearing in newTopics
+  for (const t of newTopics) {
+    if (!oldSet.has(t)) {
+      startWatcherForTopic(t);
+    }
+  }
+
+  // replace trendingTopics with the fresh list (we keep all 50 in memory)
+  trendingTopics = newTopics;
+}
 
 // API endpoint
 app.get("/api/trends", async (_req: Request, res: Response) => {
   try {
     // Optionally, always scrape fresh when called:
     const topics = await scrapeTrends();
-    res.json(topics);
+    res.json(topics.slice(0,25));
   } catch (error) {
     res.status(500).json({ error: "Failed to fetch trends" });
   }
 });
 
+app.get("/api/tweets", (_req: Request, res: Response) => {
+  try {
+    const tweetsTable = db.db.tweets();
+    const rows = Array.from(tweetsTable.iter()); // all subscribed rows
+    res.json(rows);
+  } catch (err) {
+    console.error("/api/tweets error:", err);
+    res.status(500).json({ error: "Failed to fetch tweets" });
+  }
+});
+
+app.get("/api/tweets/:topic", (req: Request, res: Response) => {
+  try {
+    const topic = req.params.topic;
+    const tweetsTable = db.db.tweets();
+    const rows = Array.from(tweetsTable.iter()).filter(r => r.topic === topic);
+    res.json(rows);
+  } catch (err) {
+    console.error(`/api/tweets/${req.params.topic} error:`, err);
+    res.status(500).json({ error: "Failed to fetch topic tweets" });
+  }
+});
+
+async function init() {
+    try {
+        db = await connectSpacetime();
+        console.log("connected to spacetime");
+        const tweetsTable = db.db.tweets(); // table handle
+        db.subscriptionBuilder()
+            .onApplied((ctx: any) => {
+            console.log(`Subscription applied: ${tweetsTable.count()} rows in cache`);
+            })
+            .onError((err: any) => {
+            console.error("Tweet subscription error:", err);
+            })
+            .subscribe(["SELECT * FROM tweets"]);
+        await updateTrends();
+        setInterval(updateTrends, 60_000_000);
+        console.log("initialized");
+    } catch (err) {
+        console.error('error while initializing', err);
+        process.exit(1);
+    }
+}
+
 // Start the Express server
 const PORT = process.env.PORT || 3000;
 app.listen(PORT, () => {
     console.log(`Server running on port ${PORT}`);
-    updateTrends();
+    init().catch(err => console.error('init error:', err));
 });
-
-// Start the main process
-main();
