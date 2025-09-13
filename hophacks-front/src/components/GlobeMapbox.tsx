@@ -4,14 +4,19 @@ import { Map, useControl } from "react-map-gl/maplibre";
 import type { ViewState } from "react-map-gl/maplibre";
 import { MapboxOverlay } from "@deck.gl/mapbox";
 import maplibregl from "maplibre-gl";
-import { Layer, COORDINATE_SYSTEM } from "@deck.gl/core";
+import { Layer, COORDINATE_SYSTEM, FlyToInterpolator } from "@deck.gl/core";
 import type { PickingInfo } from "@deck.gl/core";
 import { ScreenGridLayer } from "@deck.gl/aggregation-layers";
-
 
 // Define types
 type Color = [number, number, number, number];
 export type DataPoint = [longitude: number, latitude: number, count: number];
+
+// Custom view state type with transition properties
+interface CustomViewState extends Partial<ViewState> {
+  transitionDuration?: number;
+  transitionInterpolator?: string;
+}
 
 // Default color range for the grid
 const DEFAULT_COLOR_RANGE: Color[] = [
@@ -22,8 +27,6 @@ const DEFAULT_COLOR_RANGE: Color[] = [
   [240, 59, 32, 212],
   [189, 0, 38, 255]
 ];
-
-
 
 // Type definition for the DeckGLOverlay props
 interface DeckGLOverlayProps {
@@ -43,7 +46,7 @@ export interface GlobeMapboxProps {
   // Basic styling
   className?: string;
   style?: React.CSSProperties;
-  initialViewState?: Partial<ViewState>;
+  initialViewState?: CustomViewState;
   brightness?: number;
   globeOutlineColor?: string;
   globeOutlineWidth?: number;
@@ -87,22 +90,34 @@ const GlobeMapbox: React.FC<GlobeMapboxProps> = (props) => {
     // Interactivity props
     pickable = false,
     onHover,
-
   } = props;
   
   const mapContainerRef = useRef<HTMLDivElement>(null);
   const mapRef = useRef<maplibregl.Map | null>(null);
   
-  // Set up auto rotation if enabled
-  const INITIAL_VIEW_STATE: ViewState = {
-    longitude: 0, // Center at 0,0 by default
-    latitude: 20,  
-    zoom: 2,      // Default zoom level
-    bearing: 0,
-    pitch: 0,
-    padding: {top: 0, bottom: 0, left: 0, right: 0},
-    ...initialViewState
-  };
+  // Get the appropriate view state, handling transitions
+  const viewState = useMemo(() => {
+    // Base view state
+    const baseViewState = {
+      longitude: initialViewState?.longitude ?? 0, 
+      latitude: initialViewState?.latitude ?? 20,
+      zoom: initialViewState?.zoom ?? 2,
+      pitch: initialViewState?.pitch ?? 0,
+      bearing: initialViewState?.bearing ?? 0,
+      padding: initialViewState?.padding ?? {top: 0, bottom: 0, left: 0, right: 0},
+    };
+    
+    // Add transition properties if needed
+    if (initialViewState?.transitionDuration && initialViewState?.transitionInterpolator === 'FlyToInterpolator') {
+      return {
+        ...baseViewState,
+        transitionDuration: initialViewState.transitionDuration,
+        transitionInterpolator: new FlyToInterpolator()
+      };
+    }
+    
+    return baseViewState;
+  }, [initialViewState]);
 
   // Helper function to handle different data input types
   const getDataSource = (inputData: string | DataPoint[] | undefined): string | DataPoint[] => {
@@ -151,12 +166,9 @@ const GlobeMapbox: React.FC<GlobeMapboxProps> = (props) => {
           
           return false;
         },
-       
       })
     ];
   }, [data, opacity, cellSize, colorRange, colorDomain, aggregation, pickable, onHover]);
-
-
 
   return (
     <div 
@@ -182,7 +194,7 @@ const GlobeMapbox: React.FC<GlobeMapboxProps> = (props) => {
           reuseMaps
           projection="globe"
           mapLib={maplibregl}
-          initialViewState={INITIAL_VIEW_STATE}
+          initialViewState={viewState}
           mapStyle="https://basemaps.cartocdn.com/gl/dark-matter-gl-style/style.json"
           style={{ width: "100%", height: "100%" }}
           attributionControl={false}
@@ -213,7 +225,6 @@ const GlobeMapbox: React.FC<GlobeMapboxProps> = (props) => {
           }}
         />
       )}
-      
     </div>
   );
 };

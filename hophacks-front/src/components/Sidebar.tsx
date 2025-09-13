@@ -11,33 +11,44 @@ export function Sidebar({ className }: SidebarProps) {
   const [collapsed, setCollapsed] = useState(false);
   const [trends, setTrends] = useState<string[]>([]);
   const [selectedTrend, setSelectedTrend] = useState<string | null>(null);
+  const [contentVisible, setContentVisible] = useState(!collapsed);
 
-   // Fetch trending topics from the Flask API
-   const fetchTrends = async () => {
-     try {
-       const response = await fetch("http://localhost:5000/api/trends");
-       const data = await response.json();
-       setTrends(data);
-       console.log("Fetched trends:", data);
-     } catch (error) {
-       console.error("Error fetching trends:", error);
-     }
-   };
+  // Handle sidebar collapse/expand with content fade effects
+  const toggleSidebar = () => {
+    if (!collapsed) {
+      // First make content invisible, then collapse
+      setContentVisible(false);
+      setTimeout(() => setCollapsed(true), 300);
+    } else {
+      // First expand, then make content visible
+      setCollapsed(false);
+      setTimeout(() => setContentVisible(true), 300);
+    }
+  };
 
-   // Handle selecting a trend
-   const handleSelectTrend = (trend: string) => {
-     setSelectedTrend(trend);
-     console.log(`Selected trend: ${trend}`);
-     // Here you could add additional functionality like fetching data for this trend
-   };
+  // Fetch trending topics from the Flask API
+  const fetchTrends = async () => {
+    try {
+      const response = await fetch("http://localhost:3000/api/trends");
+      const data = await response.json();
+      setTrends(data);
+      console.log("Fetched trends:", data);
+    } catch (error) {
+      console.error("Error fetching trends:", error);
+    }
+  };
 
-   // Call the fetchTrends function when the component mounts
-   React.useEffect(() => {
-     fetchTrends();
-   }, []);
+  // Handle selecting a trend
+  const handleSelectTrend = (trend: string) => {
+    setSelectedTrend(trend);
+    console.log(`Selected trend: ${trend}`);
+    // Here you could add additional functionality like fetching data for this trend
+  };
 
-
-
+  // Call the fetchTrends function when the component mounts
+  React.useEffect(() => {
+    fetchTrends();
+  }, []);
 
   return (
     <div
@@ -52,9 +63,18 @@ export function Sidebar({ className }: SidebarProps) {
         "flex items-center border-b border-gray-300/20 p-4",
         collapsed ? "justify-center" : "justify-between"
       )}>
-        {!collapsed && <h2 className="text-xl font-bold">Trending Topics</h2>}
+        {!collapsed && (
+          <h2 
+            className={cn(
+              "text-xl text-left font-bold transition-opacity duration-200 ease-in-out",
+              contentVisible ? "opacity-100" : "opacity-0"
+            )}
+          >
+            Trending Topics
+          </h2>
+        )}
         <button
-          onClick={() => setCollapsed(!collapsed)}
+          onClick={toggleSidebar}
           className="p-2 rounded-md hover:bg-white/10 transition-colors flex items-center justify-center"
           aria-label={collapsed ? "Expand sidebar" : "Collapse sidebar"}
           title={collapsed ? "Expand" : "Collapse"}
@@ -76,17 +96,21 @@ export function Sidebar({ className }: SidebarProps) {
       {/* Content area */}
       <div className="flex-1 overflow-auto no-scrollbar">
         {!collapsed && (
-          <div className="p-4 space-y-3">
-            
+          <div 
+            className={cn(
+              "p-4 space-y-3 transition-all duration-300 ease-in-out",
+              contentVisible ? "opacity-100" : "opacity-0"
+            )}
+          >
             {/* Trend buttons */}
             {trends.length > 0 ? (
               <div className="flex flex-col gap-2">
                 {trends.map((trend, index) => (
                   <Button
                     key={index}
-                    variant="ghost"
+                    variant= "ghost"
                     className={cn(
-                      "h-10 justify-start text-left text-blue-500 bg-transparent hover:bg-white/10 hover:text-white border-0 transition-all",
+                      "h-10 justify-start text-left text-md text-blue-500 bg-transparent hover:bg-white/10 hover:text-white border-0 transition-all",
                       selectedTrend === trend && "bg-white/20"
                     )}
                     onClick={() => handleSelectTrend(trend)}
@@ -108,13 +132,14 @@ export function Sidebar({ className }: SidebarProps) {
               <div 
                 key={index}
                 className={cn(
-                  "w-8 h-8 rounded-full bg-transparent border border-white/20 flex items-center justify-center hover:bg-white/10 cursor-pointer transition-all",
+                  "w-8 h-8 rounded-md bg-transparent border-white/20 flex items-center justify-center hover:bg-white/10 cursor-pointer transition-all",
+                  contentVisible ? "opacity-0" : "opacity-100", 
                   selectedTrend === trend && "bg-white/20"
                 )}
                 title={trend}
                 onClick={() => handleSelectTrend(trend)}
               >
-                <span className="text-xs font-bold">{index + 1}</span>
+                <span className="text-md ">{index + 1}</span>
               </div>
             ))}
             {trends.length > 5 && (
@@ -123,8 +148,6 @@ export function Sidebar({ className }: SidebarProps) {
           </div>
         )}
       </div>
-
-
     </div>
   );
 }

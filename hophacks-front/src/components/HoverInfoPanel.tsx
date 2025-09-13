@@ -45,7 +45,7 @@ const HoverInfoPanel: React.FC<HoverInfoPanelProps> = ({ className }) => {
 
   return (
     <div 
-      className={`bg-black/60 text-white rounded-md p-4 backdrop-blur-md border border-gray-700/50 transition-opacity duration-300 ${className}`}
+      className={`bg-black/10 text-white font-mon rounded-md p-4 backdrop-blur-md border border-gray-700/50 transition-opacity duration-300 ${className}`}
     >
       <h3 className="text-lg font-semibold mb-3 border-b border-gray-600 pb-2">Location Information</h3>
       
