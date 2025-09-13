@@ -1,5 +1,6 @@
 import React, { useState } from 'react';
 import { cn } from '../lib/utils';
+import { Button } from './ui/button';
 
 interface SidebarProps {
   className?: string;
@@ -8,6 +9,35 @@ interface SidebarProps {
 
 export function Sidebar({ className }: SidebarProps) {
   const [collapsed, setCollapsed] = useState(false);
+  const [trends, setTrends] = useState<string[]>([]);
+  const [selectedTrend, setSelectedTrend] = useState<string | null>(null);
+
+   // Fetch trending topics from the Flask API
+   const fetchTrends = async () => {
+     try {
+       const response = await fetch("http://localhost:5000/api/trends");
+       const data = await response.json();
+       setTrends(data);
+       console.log("Fetched trends:", data);
+     } catch (error) {
+       console.error("Error fetching trends:", error);
+     }
+   };
+
+   // Handle selecting a trend
+   const handleSelectTrend = (trend: string) => {
+     setSelectedTrend(trend);
+     console.log(`Selected trend: ${trend}`);
+     // Here you could add additional functionality like fetching data for this trend
+   };
+
+   // Call the fetchTrends function when the component mounts
+   React.useEffect(() => {
+     fetchTrends();
+   }, []);
+
+
+
 
   return (
     <div
@@ -41,6 +71,57 @@ export function Sidebar({ className }: SidebarProps) {
             </svg>  
           )}
         </button>
+      </div>
+
+      {/* Content area */}
+      <div className="flex-1 overflow-auto no-scrollbar">
+        {!collapsed && (
+          <div className="p-4 space-y-3">
+            
+            {/* Trend buttons */}
+            {trends.length > 0 ? (
+              <div className="flex flex-col gap-2">
+                {trends.map((trend, index) => (
+                  <Button
+                    key={index}
+                    variant="ghost"
+                    className={cn(
+                      "h-10 justify-start text-left text-blue-500 bg-transparent hover:bg-white/10 hover:text-white border-0 transition-all",
+                      selectedTrend === trend && "bg-white/20"
+                    )}
+                    onClick={() => handleSelectTrend(trend)}
+                  >
+                    <span className="truncate">{trend}</span>
+                  </Button>
+                ))}
+              </div>
+            ) : (
+              <p className="text-sm text-gray-400">Loading trends...</p>
+            )}
+          </div>
+        )}
+
+        {/* Show only icons if collapsed */}
+        {collapsed && (
+          <div className="flex flex-col items-center gap-3 mt-4">
+            {trends.slice(0, 5).map((trend, index) => (
+              <div 
+                key={index}
+                className={cn(
+                  "w-8 h-8 rounded-full bg-transparent border border-white/20 flex items-center justify-center hover:bg-white/10 cursor-pointer transition-all",
+                  selectedTrend === trend && "bg-white/20"
+                )}
+                title={trend}
+                onClick={() => handleSelectTrend(trend)}
+              >
+                <span className="text-xs font-bold">{index + 1}</span>
+              </div>
+            ))}
+            {trends.length > 5 && (
+              <div className="text-xs mt-1 text-gray-400">+{trends.length - 5}</div>
+            )}
+          </div>
+        )}
       </div>
 
 

@@ -1,23 +1,20 @@
-import React, { useRef } from "react";
+import React, { useRef, useMemo } from "react";
 import "maplibre-gl/dist/maplibre-gl.css";
 import { Map, useControl } from "react-map-gl/maplibre";
 import type { ViewState } from "react-map-gl/maplibre";
 import { MapboxOverlay } from "@deck.gl/mapbox";
 import maplibregl from "maplibre-gl";
 import { Layer, COORDINATE_SYSTEM } from "@deck.gl/core";
-// import type { GeoJSON } from "geojson";
 import type { PickingInfo } from "@deck.gl/core";
 import { ScreenGridLayer } from "@deck.gl/aggregation-layers";
 
 
-
+// Define types
 type Color = [number, number, number, number];
-type DataPoint = [longitude: number, latitude: number, count: number];
+export type DataPoint = [longitude: number, latitude: number, count: number];
 
-const DATA_URL =
-  'https://raw.githubusercontent.com/visgl/deck.gl-data/master/examples/screen-grid/uber-pickup-locations.json';
-
-  const colorRange: Color[] = [
+// Default color range for the grid
+const DEFAULT_COLOR_RANGE: Color[] = [
   [255, 255, 178, 25],
   [254, 217, 118, 85],
   [254, 178, 76, 127],
@@ -43,59 +40,121 @@ function DeckGLOverlay(props: DeckGLOverlayProps) {
 }
 
 export interface GlobeMapboxProps {
-  // Add any custom props here
+  // Basic styling
   className?: string;
   style?: React.CSSProperties;
   initialViewState?: Partial<ViewState>;
   brightness?: number;
   globeOutlineColor?: string;
   globeOutlineWidth?: number;
+  
+  // Data visualization
+  data?: DataPoint[] | string; // Can be an array of data points or a URL string
+  colorRange?: Color[];
+  opacity?: number;
+  cellSize?: number;
+  aggregation?: 'SUM' | 'MEAN' | 'MIN' | 'MAX';
+  colorDomain?: [number, number];
+  
+  // Interactivity
+  pickable?: boolean;
+  onHover?: (info: PickingInfo) => void;
+  onClick?: (info: PickingInfo) => void;
+  
+  // Animation
+  autoRotate?: boolean;
+  rotationSpeed?: number;
 }
 
 const GlobeMapbox: React.FC<GlobeMapboxProps> = (props) => {
   const {
+    // Styling props
     brightness = 1.0,
     globeOutlineColor = "#FFFFFF",
     globeOutlineWidth = 0,
     className,
     style,
-    initialViewState
+    initialViewState,
+    
+    // Data visualization props
+    data = [],
+    colorRange = DEFAULT_COLOR_RANGE,
+    opacity = 0.8,
+    cellSize = 12,
+    aggregation = 'SUM',
+    colorDomain = [0, 20],
+    
+    // Interactivity props
+    pickable = false,
+    onHover,
+
   } = props;
   
   const mapContainerRef = useRef<HTMLDivElement>(null);
-
+  const mapRef = useRef<maplibregl.Map | null>(null);
+  
+  // Set up auto rotation if enabled
   const INITIAL_VIEW_STATE: ViewState = {
-    longitude: -74, // Center on New York for Uber data
-    latitude: 40.7,  
-    zoom: 3.5,      // Zoom to city level
+    longitude: 0, // Center at 0,0 by default
+    latitude: 20,  
+    zoom: 2,      // Default zoom level
     bearing: 0,
-    pitch: 0,       // Flat view to start (no pitch)
+    pitch: 0,
     padding: {top: 0, bottom: 0, left: 0, right: 0},
     ...initialViewState
   };
 
-  // Create a GeoJsonLayer to show cities on the globe
-  const layers = [
-   new ScreenGridLayer<DataPoint>({
-      id: 'grid',
-      data: DATA_URL,
-      opacity: 0.8,
-      getPosition: d => [d[0], d[1]],
-      getWeight: d => d[2],
-      cellSizePixels: 12,  // Larger cells for better visibility
-      colorRange,
-      // Use the globe coordinate system
-      coordinateSystem: COORDINATE_SYSTEM.LNGLAT,
-      // Enable wrapping around the globe
-      wrapLongitude: true,
-      // Add GPU aggregation for better performance
-      gpuAggregation: true,
-      // Enhance contrast
-      colorDomain: [0, 20],
-      // More advanced aggregation settings
-      aggregation: 'SUM'
-    })
-  ];
+  // Helper function to handle different data input types
+  const getDataSource = (inputData: string | DataPoint[] | undefined): string | DataPoint[] => {
+    if (!inputData || (Array.isArray(inputData) && inputData.length === 0)) {
+      console.log("GlobeMapbox: No data provided, returning empty array");
+      return []; // Return empty array if no data
+    }
+    console.log("GlobeMapbox: Data source provided:", typeof inputData === 'string' ? 'URL string' : 'Data array');
+    return inputData; // Return as is (either URL string or data array)
+  };
+
+  // Create ScreenGridLayer to visualize data on the globe
+  const layers = useMemo(() => {
+    const dataSource = getDataSource(data);
+    
+    // If no data or empty array, return empty layers array
+    if (Array.isArray(dataSource) && dataSource.length === 0) {
+      console.log("GlobeMapbox: Empty data array, not creating layer");
+      return [];
+    }
+    
+    console.log("GlobeMapbox: Creating ScreenGridLayer with data source", 
+                typeof dataSource === 'string' ? dataSource : `Array with ${dataSource.length} items`);
+    
+    return [
+      new ScreenGridLayer<DataPoint>({
+        id: 'grid',
+        data: dataSource,
+        opacity,
+        getPosition: d => [d[0], d[1]],
+        getWeight: d => d[2],
+        cellSizePixels: cellSize,
+        colorRange,
+        coordinateSystem: COORDINATE_SYSTEM.LNGLAT,
+        wrapLongitude: true,
+        gpuAggregation: true,
+        colorDomain,
+        aggregation,
+        pickable,
+
+        onHover: (info) => {
+          // Call the external onHover callback if provided
+          if (onHover) {
+            onHover(info);
+          }
+          
+          return false;
+        },
+       
+      })
+    ];
+  }, [data, opacity, cellSize, colorRange, colorDomain, aggregation, pickable, onHover]);
 
 
 
@@ -127,6 +186,10 @@ const GlobeMapbox: React.FC<GlobeMapboxProps> = (props) => {
           mapStyle="https://basemaps.cartocdn.com/gl/dark-matter-gl-style/style.json"
           style={{ width: "100%", height: "100%" }}
           attributionControl={false}
+          renderWorldCopies={false}
+          onLoad={(evt: { target: maplibregl.Map }) => {
+            mapRef.current = evt.target;
+          }}
         >
           <DeckGLOverlay layers={layers} interleaved />
         </Map>
