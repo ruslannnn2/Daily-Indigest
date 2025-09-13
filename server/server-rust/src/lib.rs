@@ -50,19 +50,34 @@ pub fn insert_tweet(
 
 #[spacetimedb::reducer]
 pub fn delete_old_tweets(ctx: &ReducerContext) -> Result<(), String> {
-    let twenty_four_hours_in_micros = 24 * 60 * 60 * 1000 * 1000; // Convert to microseconds
+    let twenty_four_hours_in_micros = 24 * 60 * 60 * 1000 * 1000;
     let cutoff_time = ctx.timestamp - TimeDuration::from_micros(twenty_four_hours_in_micros);
 
-    // Collect all old tweets first
     let old_tweets: Vec<Tweet> = ctx.db.tweet()
         .iter()
         .filter(|tweet| tweet.created_at < cutoff_time)
         .collect();
 
-    // Delete each old tweet
     for tweet in old_tweets {
         ctx.db.tweet().delete(tweet);
     }
 
     Ok(())
+}
+
+#[spacetimedb::reducer(init)]
+pub fn init(ctx: &ReducerContext) {
+    start_periodic_cleanup(ctx);
+}
+
+#[spacetimedb::reducer]
+pub fn start_periodic_cleanup(ctx: &ReducerContext) -> Result<(), String> {
+    delete_old_tweets(ctx)?;
+    
+    Ok(())
+}
+
+#[spacetimedb::reducer]
+pub fn run_scheduled_cleanup(ctx: &ReducerContext) -> Result<(), String> {
+    delete_old_tweets(ctx)
 }
