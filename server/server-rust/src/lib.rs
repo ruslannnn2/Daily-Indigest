@@ -1,4 +1,4 @@
-use spacetimedb::{ReducerContext, SpacetimeType, Timestamp, Table};
+use spacetimedb::{ReducerContext, SpacetimeType, Timestamp, Table, TimeDuration};
 
 #[derive(SpacetimeType, Clone, Debug)]
 pub struct GeoPoint {
@@ -50,16 +50,18 @@ pub fn insert_tweet(
 
 #[spacetimedb::reducer]
 pub fn delete_old_tweets(ctx: &ReducerContext) -> Result<(), String> {
-    let twenty_four_hours_in_millis = 24 * 60 * 60 * 1000;
-    let cutoff_time = ctx.timestamp() - twenty_four_hours_in_millis;
+    let twenty_four_hours_in_micros = 24 * 60 * 60 * 1000 * 1000; // Convert to microseconds
+    let cutoff_time = ctx.timestamp - TimeDuration::from_micros(twenty_four_hours_in_micros);
 
-    let old_tweets: Vec<u64> = Tweet::iter()
+    // Collect all old tweets first
+    let old_tweets: Vec<Tweet> = ctx.db.tweet()
+        .iter()
         .filter(|tweet| tweet.created_at < cutoff_time)
-        .map(|tweet| tweet.row_id)
         .collect();
 
-    for row_id in old_tweets {
-        Tweet::delete_by_row_id(row_id);
+    // Delete each old tweet
+    for tweet in old_tweets {
+        ctx.db.tweet().delete(tweet);
     }
 
     Ok(())
