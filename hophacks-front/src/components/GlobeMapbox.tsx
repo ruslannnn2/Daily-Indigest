@@ -4,16 +4,18 @@ import { Map, useControl } from "react-map-gl/maplibre";
 import type { ViewState } from "react-map-gl/maplibre";
 import { MapboxOverlay } from "@deck.gl/mapbox";
 import maplibregl from "maplibre-gl";
-import { Layer } from "@deck.gl/core";
-import type { GeoJSON } from "geojson";
+import { Layer, COORDINATE_SYSTEM } from "@deck.gl/core";
+// import type { GeoJSON } from "geojson";
 import type { PickingInfo } from "@deck.gl/core";
-import { ScreenGridLayer } from "deck.gl";
+import { ScreenGridLayer } from "@deck.gl/aggregation-layers";
 
+
+
+type Color = [number, number, number, number];
+type DataPoint = [longitude: number, latitude: number, count: number];
 
 const DATA_URL =
   'https://raw.githubusercontent.com/visgl/deck.gl-data/master/examples/screen-grid/uber-pickup-locations.json';
-
-type DataPoint = [longitude: number, latitude: number, count: number];
 
   const colorRange: Color[] = [
   [255, 255, 178, 25],
@@ -25,44 +27,6 @@ type DataPoint = [longitude: number, latitude: number, count: number];
 ];
 
 
-// Define hover info type
-
-// Sample GeoJSON data (a few major cities)
-// const CITIES: GeoJSON = {
-//   type: "FeatureCollection",
-//   features: [
-//     {
-//       type: "Feature",
-//       properties: { name: "New York", population: 8336817 },
-//       geometry: { type: "Point", coordinates: [-74.006, 40.7128] }
-//     },
-//     {
-//       type: "Feature",
-//       properties: { name: "London", population: 8982000 },
-//       geometry: { type: "Point", coordinates: [-0.1276, 51.5074] }
-//     },
-//     {
-//       type: "Feature",
-//       properties: { name: "Tokyo", population: 13960000 },
-//       geometry: { type: "Point", coordinates: [139.6917, 35.6895] }
-//     },
-//     {
-//       type: "Feature",
-//       properties: { name: "Sydney", population: 5312000 },
-//       geometry: { type: "Point", coordinates: [151.2093, -33.8688] }
-//     },
-//     {
-//       type: "Feature",
-//       properties: { name: "Rio de Janeiro", population: 6748000 },
-//       geometry: { type: "Point", coordinates: [-43.1729, -22.9068] }
-//     },
-//     {
-//       type: "Feature",
-//       properties: { name: "Cairo", population: 9500000 },
-//       geometry: { type: "Point", coordinates: [31.2357, 30.0444] }
-//     }
-//   ]
-// };
 
 // Type definition for the DeckGLOverlay props
 interface DeckGLOverlayProps {
@@ -101,12 +65,12 @@ const GlobeMapbox: React.FC<GlobeMapboxProps> = (props) => {
   const mapContainerRef = useRef<HTMLDivElement>(null);
 
   const INITIAL_VIEW_STATE: ViewState = {
-    longitude: -95, // Center of the US
-    latitude: 37,   // Around Kansas (middle of US)
-    zoom: 3.5,        // Good globe view
+    longitude: -74, // Center on New York for Uber data
+    latitude: 40.7,  
+    zoom: 3.5,      // Zoom to city level
     bearing: 0,
-    pitch: 15,
-    padding: {top: 0, bottom: 0, left: 450, right: 0},
+    pitch: 0,       // Flat view to start (no pitch)
+    padding: {top: 0, bottom: 0, left: 0, right: 0},
     ...initialViewState
   };
 
@@ -118,8 +82,18 @@ const GlobeMapbox: React.FC<GlobeMapboxProps> = (props) => {
       opacity: 0.8,
       getPosition: d => [d[0], d[1]],
       getWeight: d => d[2],
-      cellSizePixels: 8,
+      cellSizePixels: 12,  // Larger cells for better visibility
       colorRange,
+      // Use the globe coordinate system
+      coordinateSystem: COORDINATE_SYSTEM.LNGLAT,
+      // Enable wrapping around the globe
+      wrapLongitude: true,
+      // Add GPU aggregation for better performance
+      gpuAggregation: true,
+      // Enhance contrast
+      colorDomain: [0, 20],
+      // More advanced aggregation settings
+      aggregation: 'SUM'
     })
   ];
 
