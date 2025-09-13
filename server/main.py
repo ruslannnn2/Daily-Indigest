@@ -1,8 +1,24 @@
 from apify_client import ApifyClient
+import os
+from dotenv import load_dotenv
+from datetime import datetime
 
-TOKEN = "apify_api_HoUK0czSrNJqYWrZ3ecdar4gZwrja10qCR9s"
+load_dotenv()
+
+TOKEN = os.getenv("apify_token")
+actor = os.getenv("apify_actor")
 
 client = ApifyClient(TOKEN)
+
+
+
+
+
+
+
+
+
+
 
 run_input = {
     "searchTerms": [
@@ -11,7 +27,7 @@ run_input = {
     "maxItems": 20
 }
 
-run = client.actor("61RPP7dywgiy0JPD0").call(run_input=run_input)
+run = client.actor(actor).call(run_input=run_input)
 
 for item in client.dataset(run["defaultDatasetId"]).iterate_items():
     print(item)
