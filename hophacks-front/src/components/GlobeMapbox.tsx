@@ -1,3 +1,5 @@
+//DEPRACATED
+
 import React, { useRef, useMemo, useState, useEffect } from "react";
 import "maplibre-gl/dist/maplibre-gl.css";
 import { Map, useControl } from "react-map-gl/maplibre";

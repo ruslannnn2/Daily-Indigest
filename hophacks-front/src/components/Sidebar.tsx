@@ -1,7 +1,6 @@
 import React, { useState } from 'react';
 import { cn } from '../lib/utils';
 import { Button } from './ui/button';
-import { buildDatasetForTrend } from '../scripts/BuildDataset';
 
 
 // SidebarProps interface
@@ -9,9 +8,8 @@ interface SidebarProps {
   className?: string;
   onTopicSelect?: (topic: string | null) => void;
   children?: React.ReactNode;
-  onSelectTrend?: (trend: string) => void;
 }
-export function Sidebar({ className, onSelectTrend }: SidebarProps) {
+export function Sidebar({ className, onTopicSelect }: SidebarProps) {
   const [collapsed, setCollapsed] = useState(false);
   const [trends, setTrends] = useState<string[]>([]);
   const [selectedTrend, setSelectedTrend] = useState<string | null>(null);
@@ -46,11 +44,11 @@ export function Sidebar({ className, onSelectTrend }: SidebarProps) {
   const handleSelectTrend = (trend: string) => {
     setSelectedTrend(trend);
     // Call the callback function passed from parent component
-    if (onSelectTrend) {
-      onSelectTrend(trend);
+    if (onTopicSelect) {
+      onTopicSelect(trend);
     }
     console.log(`Selected trend: ${trend}`);
-    buildDatasetForTrend(trend);
+    
     // Removed duplicate call to buildDatasetForTrend - this should be handled by the parent component
   };
 
@@ -119,7 +117,7 @@ export function Sidebar({ className, onSelectTrend }: SidebarProps) {
                     key={index}
                     variant= "ghost"
                     className={cn(
-                      "h-10 justify-start text-left text-md text-blue-500 bg-transparent hover:bg-white/10 hover:text-white border-0 transition-all",
+                      "h-10 justify-start text-left text-md text-blue-500 bg-transparent hover:bg-black/10 hover:text-white border-0 transition-all",
                       selectedTrend === trend && "bg-white/20"
                     )}
                     onClick={() => handleSelectTrend(trend)}

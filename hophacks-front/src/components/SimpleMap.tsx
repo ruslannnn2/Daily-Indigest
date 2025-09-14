@@ -71,6 +71,9 @@ export interface SimpleMapProps {
   onHover?: (info: PickingInfo) => void;
   onClick?: (info: PickingInfo) => void;
   onViewStateChange?: (params: any) => void;
+  
+  // Force refresh
+  refreshKey?: number;
 }
 
 const SimpleMap: React.FC<SimpleMapProps> = (props) => {
@@ -93,7 +96,8 @@ const SimpleMap: React.FC<SimpleMapProps> = (props) => {
     pickable = false,
     onHover,
     onClick,
-    onViewStateChange
+    onViewStateChange,
+    refreshKey = 0
   } = props;
 
   // Helper function to handle different data input types
@@ -102,7 +106,26 @@ const SimpleMap: React.FC<SimpleMapProps> = (props) => {
       console.log("SimpleMap: No data provided, returning empty array");
       return [];
     }
-    console.log("SimpleMap: Data source provided:", typeof inputData === 'string' ? 'URL string' : 'Data array');
+    
+    if (Array.isArray(inputData)) {
+      console.log("SimpleMap: Data source provided: Data array with", inputData.length, "items");
+      // Log sample data for debugging
+      if (inputData.length > 0) {
+        console.log("SimpleMap: Sample data point:", inputData[0]);
+        // Count valid coordinates
+        const validCount = inputData.filter(item => {
+          if (Array.isArray(item)) {
+            return typeof item[0] === 'number' && typeof item[1] === 'number';
+          } else {
+            return typeof item.lat === 'number' && typeof item.lon === 'number';
+          }
+        }).length;
+        console.log(`SimpleMap: ${validCount}/${inputData.length} items have valid coordinates`);
+      }
+    } else {
+      console.log("SimpleMap: Data source provided: URL string");
+    }
+    
     return inputData;
   };
 
@@ -118,9 +141,12 @@ const SimpleMap: React.FC<SimpleMapProps> = (props) => {
     console.log("SimpleMap: Creating ScreenGridLayer with data source", 
                 typeof dataSource === 'string' ? dataSource : `Array with ${dataSource.length} items`);
     
+    // Log when the layer is being recreated
+    console.log(`SimpleMap: Layer dependencies changed, recreating ScreenGridLayer with refreshKey: ${refreshKey}`);
+    
     return [
       new ScreenGridLayer({
-        id: 'grid',
+        id: `grid-${refreshKey}`, // Include refresh key to force layer recreation
         data: dataSource,
         opacity,
         getPosition: d => {
@@ -128,10 +154,11 @@ const SimpleMap: React.FC<SimpleMapProps> = (props) => {
           if (Array.isArray(d)) {
             // If it's our original array format [lon, lat, intensity]
             return [d[0], d[1]];
-          } else if (d.lon !== undefined && d.lat !== undefined) {
+          } else if (d && typeof d.lon === 'number' && typeof d.lat === 'number') {
             // If it's from the API with lon/lat properties
             return [d.lon, d.lat];
           }
+          console.warn('SimpleMap: Invalid data point for position:', d);
           return [0, 0]; // Fallback
         },
         getWeight: d => {
@@ -166,7 +193,7 @@ const SimpleMap: React.FC<SimpleMapProps> = (props) => {
         }
       })
     ];
-  }, [data, opacity, cellSize, colorRange, colorDomain, aggregation, pickable, onHover, onClick]);
+  }, [data, opacity, cellSize, colorRange, colorDomain, aggregation, pickable, onHover, onClick, refreshKey]);
 
   return (
     <div 

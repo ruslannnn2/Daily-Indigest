@@ -52,14 +52,14 @@ export function GeminiExplanation({ topic, className }: GeminiExplanationProps) 
   if (!topic) return null;
 
   return (
-    <div className={`p-4 bg-black/50 backdrop-blur-sm rounded-lg shadow-lg transition-all duration-500 ease-in-out ${
+    <div className={`p-4 w-64 mt-4 bg-black/50 text-sm backdrop-blur-sm rounded-lg shadow-lg transition-all duration-500 ease-in-out ${
       !showButton && explanation ? "opacity-100" : "opacity-90"
     } ${className}`}>
       {showButton ? (
         <Button 
           onClick={fetchExplanation} 
           disabled={isLoading}
-          className="w-full bg-blue-500 hover:bg-blue-600 text-white"
+          className="w-full bg-blue-500 hover:bg-blue-600 text-white text-sm"
         >
           {isLoading ? "Loading..." : "Elaborate"}
         </Button>

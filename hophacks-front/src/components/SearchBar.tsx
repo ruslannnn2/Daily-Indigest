@@ -62,42 +62,6 @@ async function fetchPeliasSuggestions(query: string): Promise<AutocompleteSugges
     console.error('Error fetching suggestions:', error);
     
     // For demo purposes, return mock data if the API fails
-    if (query.toLowerCase().includes('new york')) {
-      return [{
-        placeId: 'mock-ny',
-        name: 'New York City',
-        city: 'New York',
-        state: 'NY',
-        country: 'USA',
-        geometry: {
-          coordinates: [-74.0060, 40.7128]
-        }
-      }];
-    }
-    
-    if (query.toLowerCase().includes('london')) {
-      return [{
-        placeId: 'mock-london',
-        name: 'London',
-        city: 'London',
-        country: 'United Kingdom',
-        geometry: {
-          coordinates: [-0.1278, 51.5074]
-        }
-      }];
-    }
-    
-    if (query.toLowerCase().includes('tokyo')) {
-      return [{
-        placeId: 'mock-tokyo',
-        name: 'Tokyo',
-        city: 'Tokyo',
-        country: 'Japan',
-        geometry: {
-          coordinates: [139.6503, 35.6762]
-        }
-      }];
-    }
     
     return [];
   }

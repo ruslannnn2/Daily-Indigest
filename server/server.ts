@@ -16,7 +16,7 @@ dotenv.config();
 const TOKEN = process.env.apify_token;
 const ACTOR = process.env.apify_actor;
 
-const genAI = new GoogleGenerativeAI(process.env.gemini_key || "");
+const genAI = new GoogleGenerativeAI(process.env.gemini_api_key || "");
 
 let db: any;
 const topicWatchers: Map<string, NodeJS.Timeout> = new Map();
@@ -224,7 +224,7 @@ async function fetchTweets(db: any, topic: string) {
                         lat, 
                         lon,
                         createdAtMicros,
-                        topic.replace(/\s+/g, "_")
+                        topic.replace(/\s+/g, "_").replace(/[`~!@#$%^&*()_|+\-=?;:'",.<>\{\}\[\]\\\/]/gi, '')
                     );
                 }
             } else {
@@ -350,7 +350,7 @@ app.get("/api/flattened/:topic", (req: Request, res: Response) => {
     if (!db) return res.status(500).json({ error: "no db"});
     const topic = req.params.topic;
     const tweetsTable = db.db.tweet;
-    const rows = Array.from(tweetsTable.iter()).filter(r => r.topic === topic.replace(/\s+/g, "_"));
+    const rows = Array.from(tweetsTable.iter()).filter(r => r.topic === topic.replace(/\s+/g, "_").replace(/[`~!@#$%^&*()_|+\-=?;:'",.<>\{\}\[\]\\\/]/gi, ''));
     const mapped = rows.map((r: any) => {
       const loc = r.location ?? r.geo ?? {};
       const lat = (typeof loc.lat === "number" ? loc.lat : (r.latitude ?? r.lat));
@@ -361,7 +361,15 @@ app.get("/api/flattened/:topic", (req: Request, res: Response) => {
       const topic = r.topic ?? "";
 
       return { topic, lon, lat, text, author };
+    }).filter(item => {
+      // Filter out items without valid coordinates
+      return typeof item.lat === 'number' && typeof item.lon === 'number' && 
+             !isNaN(item.lat) && !isNaN(item.lon) &&
+             item.lat !== 0 && item.lon !== 0 && // Filter out 0,0 coordinates which are likely invalid
+             Math.abs(item.lat) <= 90 && Math.abs(item.lon) <= 180; // Basic bounds check
     });
+    
+    console.log(`Topic "${topic}": Found ${rows.length} total tweets, ${mapped.length} with valid coordinates`);
     res.json(mapped);
   } catch (err) {
     console.error("/api/flattened/:topic error:", err);
@@ -385,8 +393,15 @@ app.get("/api/flattened", (_req: Request, res: Response) => {
       const topic = r.topic ?? "";
 
       return { topic, lon, lat, text, author };
+    }).filter(item => {
+      // Filter out items without valid coordinates
+      return typeof item.lat === 'number' && typeof item.lon === 'number' && 
+             !isNaN(item.lat) && !isNaN(item.lon) &&
+             item.lat !== 0 && item.lon !== 0 && // Filter out 0,0 coordinates which are likely invalid
+             Math.abs(item.lat) <= 90 && Math.abs(item.lon) <= 180; // Basic bounds check
     });
 
+    console.log(`All topics: Found ${rows.length} total tweets, ${mapped.length} with valid coordinates`);
     res.json(mapped);
   } catch (err) {
     console.error("/api/flattened error:", err);
@@ -401,7 +416,7 @@ app.get("/api/tweets/:topic", (req: Request, res: Response) => {
     const tweetsTable = db.db.tweet;
     
     // Filter tweets by topic
-    const rows = Array.from(tweetsTable.iter()).filter(r => r.topic === topic.replace(/\s+/g, "_"));
+    const rows = Array.from(tweetsTable.iter()).filter(r => r.topic === topic.replace(/\s+/g, "_").replace(/[`~!@#$%^&*()_|+\-=?;:'",.<>\{\}\[\]\\\/]/gi, ''));
     console.log(`Found ${rows.length} tweets for topic '${topic}'`);
     
     // Define a recursive function to handle nested BigInt values
@@ -475,19 +490,22 @@ function getTopicSelection(topic: string, count = 20): string[] {
   if (!db) return [];
 
   const tweetsTable = db.db.tweet;
-  const allTweets = Array.from(tweetsTable.iter()).filter((t) => t.topic === topic.replace(/\s+/g, "_"));
+  const allTweets = Array.from(tweetsTable.iter()).filter((t) => t.topic === topic.replace(/\s+/g, "_").replace(/[`~!@#$%^&*()_|+\-=?;:'",.<>\{\}\[\]\\\/]/gi, ''));
 
   const shuffled = allTweets.sort(() => 0.5 - Math.random());
-  return shuffled.slice(0, count).map((t) => t.text);
+  console.log(shuffled);
+  return shuffled.slice(0, (20 > shuffled.length ? shuffled.length : 20)).map((t) => t.content);
 }
 
 async function summarizeGemini(topic: string) {
   const tweets = getTopicSelection(topic, 20);
   if (tweets.length === 0) return "No tweets available for this topic.";
+  console.log(tweets);
 
-  const prompt = `You are a helpful assistant summarizing social media activity. Summarize the following ${tweets.length} tweets about the topic "${topic}". Summarize the main themes and what people are saying. Identify the general consensus or mood (positive, negative, mixed). If there are disagreements or distinct groups of opinions, describe them briefly. Tweets: ${tweets.join("\n")}`;
+  const prompt = `You are a helpful assistant summarizing social media activity. Summarize the following ${tweets.length} tweets about the topic "${topic}". Summarize the main themes and what people are saying. Identify the general consensus or mood (positive, negative, mixed). If there are disagreements or distinct groups of opinions, describe them briefly. Keep the maximum word count at 75. Tweets: ${tweets.join("\n")}`;
   const model = genAI.getGenerativeModel({ model: "gemini-2.0-flash" });
   const result = await model.generateContent(prompt);
+  console.log(result);
   return result.response.text();
 }
 
