@@ -23,12 +23,12 @@ const HoverInfoPanel: React.FC<HoverInfoPanelProps> = ({ className, hoverInfo })
     
     // Base height for coordinates and header + dynamic height per tweet
     const baseHeight = 160; // pixels for header, coordinates, etc.
-    const tweetHeight = 80; // approximate pixels per tweet
+    const tweetHeight = 120; // approximate pixels per tweet
     const maxTweets = Math.min(hoverInfo.tweets.length, 8); // Show max 8 tweets
     const totalHeight = baseHeight + (maxTweets * tweetHeight);
     
     // Convert to Tailwind classes or use inline style
-    if (totalHeight <= 200) return 'max-h-48';
+    if (totalHeight <= 200) return 'max-h-72';
     if (totalHeight <= 300) return 'max-h-72';
     if (totalHeight <= 400) return 'max-h-96';
     return 'max-h-[32rem]'; // Cap at a reasonable max height

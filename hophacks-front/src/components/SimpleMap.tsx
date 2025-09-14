@@ -100,7 +100,7 @@ const SimpleMap: React.FC<SimpleMapProps> = (props) => {
     refreshKey = 0
   } = props;
 
-  // Helper function to handle different data input types
+  //Helper function to handle different data input types
   const getDataSource = (inputData: string | DataPoint[] | APIDataPoint[] | undefined): string | DataPoint[] | APIDataPoint[] => {
     if (!inputData || (Array.isArray(inputData) && inputData.length === 0)) {
       console.log("SimpleMap: No data provided, returning empty array");
@@ -129,7 +129,7 @@ const SimpleMap: React.FC<SimpleMapProps> = (props) => {
     return inputData;
   };
 
-  // Create ScreenGridLayer to visualize data
+  //Create ScreenGridLayer to visualize data
   const layers = useMemo(() => {
     const dataSource = getDataSource(data);
     
@@ -138,15 +138,14 @@ const SimpleMap: React.FC<SimpleMapProps> = (props) => {
       return [];
     }
     
+    //Debug statements
     console.log("SimpleMap: Creating ScreenGridLayer with data source", 
                 typeof dataSource === 'string' ? dataSource : `Array with ${dataSource.length} items`);
-    
-    // Log when the layer is being recreated
     console.log(`SimpleMap: Layer dependencies changed, recreating ScreenGridLayer with refreshKey: ${refreshKey}`);
     
     return [
       new ScreenGridLayer({
-        id: `grid-${refreshKey}`, // Include refresh key to force layer recreation
+        id: `grid-${refreshKey}`, //Include refresh key to force layer recreation
         data: dataSource,
         opacity,
         getPosition: d => {

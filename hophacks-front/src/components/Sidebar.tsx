@@ -42,12 +42,21 @@ export function Sidebar({ className, onTopicSelect }: SidebarProps) {
 
   // Handle selecting a trend
   const handleSelectTrend = (trend: string) => {
-    setSelectedTrend(trend);
-    // Call the callback function passed from parent component
-    if (onTopicSelect) {
-      onTopicSelect(trend);
+    if (selectedTrend === trend) {
+      // If clicking the same trend, deselect it to show full dataset
+      setSelectedTrend(null);
+      if (onTopicSelect) {
+        onTopicSelect(null); // Pass null to show full dataset
+      }
+      console.log(`Deselected trend: ${trend} - showing full dataset`);
+    } else {
+      // If clicking a different trend, select it
+      setSelectedTrend(trend);
+      if (onTopicSelect) {
+        onTopicSelect(trend);
+      }
+      console.log(`Selected trend: ${trend}`);
     }
-    console.log(`Selected trend: ${trend}`);
     
     // Removed duplicate call to buildDatasetForTrend - this should be handled by the parent component
   };

@@ -6,7 +6,7 @@ import HoverInfoPanel from '../components/HoverInfoPanel';
 import SearchBar from '../components/SearchBar';
 import { GeminiExplanation } from '../components/GeminiExplanation';
 
-// Define types for better type safety
+//Types for type safety
 interface TweetData {
   topic: string;
   lon: number;
@@ -30,8 +30,9 @@ interface HoverInfo {
   layer?: any;
 }
 
-// Base API URL
+//API URL for server access
 const BASE_API_URL = 'http://localhost:3000/api/flattened';
+
 
 const Explorer: React.FC = () => {
   const [selectedTopic, setSelectedTopic] = useState<string | null>(null);
@@ -40,19 +41,19 @@ const Explorer: React.FC = () => {
   const [currentData, setCurrentData] = useState<TweetData[]>([]);
   const [isLoading, setIsLoading] = useState(false);
   
-  // State for hover information
+  //State for hover information
   const [hoverInfo, setHoverInfo] = useState<{
     coordinate: [number, number];
     tweets: Array<{text: string; author: string; topic: string}>;
   } | null>(null);
 
-  // Ref to store the timeout ID for clearing hover info
+  //Ref to store the timeout ID for clearing hover info
   const clearTimeoutRef = useRef<NodeJS.Timeout | null>(null);
   
-  // State to force screen grid layer refresh
+  //State to force screen grid layer refresh
   const [layerRefreshKey, setLayerRefreshKey] = useState<number>(0);
 
-  // Function to fetch data based on selected topic
+  //Function to fetch data based on selected topic
   const fetchData = useCallback(async (topic: string | null) => {
     setIsLoading(true);
     try {
@@ -82,10 +83,10 @@ const Explorer: React.FC = () => {
       setCurrentData([...validData]);
       console.log(`Loaded ${data.length} total items, ${validData.length} with valid coordinates for topic:`, topic || 'all topics');
       
-      // Force layer refresh by updating the key
+      //Force layer refresh by updating the key
       setLayerRefreshKey(prev => prev + 1);
       
-      // Log some sample data to debug
+      //Log some sample data to debug
       if (validData.length > 0) {
         console.log('Sample valid data points:', validData.slice(0, 3));
       }
@@ -97,7 +98,7 @@ const Explorer: React.FC = () => {
     }
   }, []);
 
-  // State for controlling the map view
+  //State for controlling the map view
   const [viewState, setViewState] = useState<ViewState>({
     longitude: -95, 
     latitude: 40,
@@ -162,9 +163,7 @@ const Explorer: React.FC = () => {
         });
 
         // Set timeout to clear hover info after 5 seconds
-        clearTimeoutRef.current = setTimeout(() => {
-          setHoverInfo(null);
-        }, 5000);
+     
       }
     } else {
       setHoverInfo(null);

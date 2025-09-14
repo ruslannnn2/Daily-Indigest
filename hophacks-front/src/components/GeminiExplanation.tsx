@@ -26,7 +26,7 @@ export function GeminiExplanation({ topic, className }: GeminiExplanationProps) 
       const fullText = data.summary;
       setExplanation(fullText);
       
-      // Reveal text character by character
+      //Reveal text character by character
       let currentText = "";
       for (let i = 0; i < fullText.length; i++) {
         currentText += fullText[i];

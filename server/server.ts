@@ -477,8 +477,8 @@ async function init() {
             console.error("Tweet subscription error:", err);
             })
             .subscribe(["SELECT * FROM tweet"]);
-        // await updateTrends();
-        // setInterval(updateTrends, 60_000_000);
+        // await updateTrends();                    //NEEDED TO START DATA COLLECTION
+        // setInterval(updateTrends, 60_000_000);  //NEEDED TO START DATA COLLECTION
         // console.log("initialized");
     } catch (err) {
         console.error('error while initializing', err);
