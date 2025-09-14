@@ -1,4 +1,4 @@
-import React, { useEffect } from 'react';
+import React, { useEffect, useState, useCallback } from 'react';
 import GlobeMapbox from '../components/GlobeMapbox';
 import Sidebar from '../components/Sidebar';
 import HoverInfoPanel from '../components/HoverInfoPanel';
@@ -8,22 +8,36 @@ import { GeminiExplanation } from '../components/GeminiExplanation';
 // Default data URL if no specific data is provided
 // const DEFAULT_DATA_URL = 'https://raw.githubusercontent.com/visgl/deck.gl-data/master/examples/screen-grid/uber-pickup-locations.json';
 const DEFAULT_DATA_URL = 'http://localhost:3000/api/flattened';
+
 const Explorer: React.FC = () => {
   // Using a fixed data source for now - will be updated when fetching real data
   const data = DEFAULT_DATA_URL;
 
-  // const [trends, setTrends] = useState<string[]>([]);
+  const [selectedTopic, setSelectedTopic] = useState<string | null>(null);
 
-  // Define initial view state to set orientation
-  const initialViewState = {
+  // State for controlling the map view
+  const [viewState, setViewState] = useState({
     longitude: -95, 
     latitude: 40,
     zoom: 4.7,
     pitch: 0, 
     bearing: 0,
-
     transitionDuration: 0
-  };
+  });
+
+  // Handle location selection from search bar
+  const handleLocationSelect = useCallback((longitude: number, latitude: number) => {
+    console.log(`Flying to coordinates: [${longitude}, ${latitude}]`);
+    
+    setViewState(prevState => ({
+      ...prevState,
+      longitude,
+      latitude,
+      zoom: 6, // Zoom in when selecting a location
+      transitionDuration: 2000, // 2 second smooth transition
+      transitionInterpolator: 'FlyToInterpolator'
+    }));
+  }, []);
 
   //   const fetchTrends = async () => {
   //   try {
@@ -50,7 +64,7 @@ const Explorer: React.FC = () => {
     <div className="relative h-screen w-screen overflow-hidden bg-gradient-to-b from-gray-800 to-black">
         {/* Top search bar */}
         <div className="absolute top-4 left-1/2 transform -translate-x-1/2 z-20 w-1/3">
-            <SearchBar />
+            <SearchBar onLocationSelect={handleLocationSelect} />
          </div>
       {/* Globe background */}
       <div className="absolute inset-0 z-0">
@@ -62,7 +76,7 @@ const Explorer: React.FC = () => {
           colorDomain={[0, 20]}
           aggregation="SUM"
           pickable={true}
-          initialViewState={initialViewState}
+          initialViewState={viewState}
 
           onHover={(info) => {
             if (info.coordinate) {

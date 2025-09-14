@@ -7,6 +7,7 @@ import { buildDatasetForTrend } from '../scripts/BuildDataset';
 // SidebarProps interface
 interface SidebarProps {
   className?: string;
+  onTopicSelect?: (topic: string | null) => void;
   children?: React.ReactNode;
   onSelectTrend?: (trend: string) => void;
 }

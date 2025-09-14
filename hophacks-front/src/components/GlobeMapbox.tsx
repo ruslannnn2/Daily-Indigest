@@ -1,4 +1,4 @@
-import React, { useRef, useMemo, useEffect } from "react";
+import React, { useRef, useMemo, useState, useEffect } from "react";
 import "maplibre-gl/dist/maplibre-gl.css";
 import { Map, useControl } from "react-map-gl/maplibre";
 import type { ViewState } from "react-map-gl/maplibre";
@@ -24,7 +24,7 @@ export interface APIDataPoint {
 // Custom view state type with transition properties
 interface CustomViewState extends Partial<ViewState> {
   transitionDuration?: number;
-  transitionInterpolator?: string;
+  transitionInterpolator?: string | FlyToInterpolator;
 }
 
 // Default color range for the grid
@@ -104,28 +104,36 @@ const GlobeMapbox: React.FC<GlobeMapboxProps> = (props) => {
   const mapContainerRef = useRef<HTMLDivElement>(null);
   const mapRef = useRef<maplibregl.Map | null>(null);
   
-  // Get the appropriate view state, handling transitions
-  const viewState = useMemo(() => {
-    // Base view state
-    const baseViewState = {
-      longitude: initialViewState?.longitude ?? 0, 
-      latitude: initialViewState?.latitude ?? 20,
-      zoom: initialViewState?.zoom ?? 2,
-      pitch: initialViewState?.pitch ?? 0,
-      bearing: initialViewState?.bearing ?? 0,
-      padding: initialViewState?.padding ?? {top: 0, bottom: 0, left: 0, right: 0},
-    };
-    
-    // Add transition properties if needed
-    if (initialViewState?.transitionDuration && initialViewState?.transitionInterpolator === 'FlyToInterpolator') {
-      return {
-        ...baseViewState,
-        transitionDuration: initialViewState.transitionDuration,
-        transitionInterpolator: new FlyToInterpolator()
+  // Local state for view state management
+  const [viewState, setViewState] = useState<any>(() => ({
+    longitude: initialViewState?.longitude ?? 0, 
+    latitude: initialViewState?.latitude ?? 20,
+    zoom: initialViewState?.zoom ?? 2,
+    pitch: initialViewState?.pitch ?? 0,
+    bearing: initialViewState?.bearing ?? 0,
+    padding: initialViewState?.padding ?? {top: 0, bottom: 0, left: 0, right: 0},
+  }));
+  
+  // Update view state when initialViewState prop changes
+  useEffect(() => {
+    if (initialViewState) {
+      const newViewState: Partial<ViewState> & { transitionDuration?: number; transitionInterpolator?: FlyToInterpolator } = {
+        longitude: initialViewState.longitude ?? 0, 
+        latitude: initialViewState.latitude ?? 20,
+        zoom: initialViewState.zoom ?? 2,
+        pitch: initialViewState.pitch ?? 0,
+        bearing: initialViewState.bearing ?? 0,
+        padding: initialViewState.padding ?? {top: 0, bottom: 0, left: 0, right: 0},
       };
+      
+      // Add transition properties if needed
+      if (initialViewState.transitionDuration && initialViewState.transitionInterpolator === 'FlyToInterpolator') {
+        newViewState.transitionDuration = initialViewState.transitionDuration;
+        newViewState.transitionInterpolator = new FlyToInterpolator();
+      }
+      
+      setViewState(newViewState);
     }
-    
-    return baseViewState;
   }, [initialViewState]);
 
   // Helper function to handle different data input types
@@ -224,11 +232,15 @@ const GlobeMapbox: React.FC<GlobeMapboxProps> = (props) => {
           reuseMaps
           projection="globe"
           mapLib={maplibregl}
-          initialViewState={viewState}
+          {...viewState}
           mapStyle="https://basemaps.cartocdn.com/gl/dark-matter-gl-style/style.json"
           style={{ width: "100%", height: "100%" }}
           attributionControl={false}
           renderWorldCopies={false}
+          onMove={(evt) => {
+            // Update local view state when user interacts with map
+            setViewState(evt.viewState);
+          }}
           onLoad={(evt: { target: maplibregl.Map }) => {
             mapRef.current = evt.target;
           }}
