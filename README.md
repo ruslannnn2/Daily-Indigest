@@ -37,3 +37,9 @@ An interactive visualization platform that maps tweets with location data and pr
   - Returns all tweets in a `topic, longitude, latitude, text, author` format
 - `GET` /api/flattened/:topic
   - Returns all tweets in a `topic, longitude, latitude, text, author` format for a specific `topic`
+
+## Acknowledgements
+A special thanks to to HopHacks 2025, Sponsors at SpacetimeDB, and Google Gemini
+
+##License
+Copyright (c) 2025 Ruslan Akmyradov, Daniel Yi
