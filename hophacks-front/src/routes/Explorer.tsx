@@ -1,5 +1,5 @@
 import React, { useEffect, useState, useCallback } from 'react';
-import GlobeMapbox from '../components/GlobeMapbox';
+import SimpleMap from '../components/SimpleMap';
 import Sidebar from '../components/Sidebar';
 import HoverInfoPanel from '../components/HoverInfoPanel';
 import SearchBar from '../components/SearchBar';
@@ -14,15 +14,20 @@ const Explorer: React.FC = () => {
   const data = DEFAULT_DATA_URL;
 
   const [selectedTopic, setSelectedTopic] = useState<string | null>(null);
+  
+  // State for hover information
+  const [hoverInfo, setHoverInfo] = useState<{
+    coordinate: [number, number];
+    tweets: Array<{text: string; author: string; topic: string}>;
+  } | null>(null);
 
   // State for controlling the map view
   const [viewState, setViewState] = useState({
     longitude: -95, 
     latitude: 40,
-    zoom: 4.7,
+    zoom: 4,
     pitch: 0, 
-    bearing: 0,
-    transitionDuration: 0
+    bearing: 0
   });
 
   // Handle location selection from search bar
@@ -33,10 +38,13 @@ const Explorer: React.FC = () => {
       ...prevState,
       longitude,
       latitude,
-      zoom: 6, // Zoom in when selecting a location
-      transitionDuration: 2000, // 2 second smooth transition
-      transitionInterpolator: 'FlyToInterpolator'
+      zoom: 10, // Zoom in when selecting a location
     }));
+  }, []);
+
+  // Handle view state changes from the map
+  const handleViewStateChange = useCallback((params: any) => {
+    setViewState(params.viewState);
   }, []);
 
   //   const fetchTrends = async () => {
@@ -66,24 +74,42 @@ const Explorer: React.FC = () => {
         <div className="absolute top-4 left-1/2 transform -translate-x-1/2 z-20 w-1/3">
             <SearchBar onLocationSelect={handleLocationSelect} />
          </div>
-      {/* Globe background */}
+      {/* Map background */}
       <div className="absolute inset-0 z-0">
-        <GlobeMapbox 
-          brightness={1}
+        <SimpleMap 
           data={data}
           opacity={0.8}
           cellSize={12}
           colorDomain={[0, 20]}
           aggregation="SUM"
           pickable={true}
-          initialViewState={viewState}
-
-          onHover={(info) => {
+          viewState={viewState}
+          onViewStateChange={handleViewStateChange}
+          onHover={(info: any) => {
             if (info.coordinate) {
               console.log("Hover info", info.coordinate[0], info.coordinate[1]);
+              
+              // Extract tweet information from the hover data
+              let tweets: Array<{text: string; author: string; topic: string}> = [];
+              
+              if (info.object && info.object.points) {
+                // ScreenGridLayer provides aggregated points
+                tweets = info.object.points.map((point: any) => ({
+                  text: point.text || "Tweet content not available",
+                  author: point.author || "Unknown",
+                  topic: point.topic || "General"
+                }));
+              }
+              
+              setHoverInfo({
+                coordinate: [info.coordinate[0], info.coordinate[1]],
+                tweets: tweets
+              });
+            } else {
+              // Clear hover info when not hovering over anything
+              setHoverInfo(null);
             }
             
-            // Return true to keep the layer visible after hover
             return true;
           }}
         />
@@ -103,7 +129,7 @@ const Explorer: React.FC = () => {
         
         {/* Right panel with hover info */}
         <div className="pointer-events-auto mr-4 mt-4">
-          <HoverInfoPanel className="w-64 h-auto" />
+          <HoverInfoPanel className="w-64 h-128" hoverInfo={hoverInfo} />
           <GeminiExplanation 
             topic={selectedTopic}
             className="mt-4"
