@@ -316,11 +316,36 @@ app.get("/api/trends", async (_req: Request, res: Response) => {
 app.get("/api/tweets", (_req: Request, res: Response) => {
   try {
     const tweetsTable = db.db.tweet;
-    const rows = Array.from(tweetsTable.iter()); // all subscribed rows
+    const rows = Array.from(tweetsTable.iter());
     res.json(rows);
   } catch (err) {
     console.error("/api/tweets error:", err);
     res.status(500).json({ error: "Failed to fetch tweets" });
+  }
+});
+
+app.get("/api/flattened", (_req: Request, res: Response) => {
+  try {
+    if (!db) return res.status(500).json({ error: "no db"});
+    const tweetsTable = db.db.tweet;
+    const rows = Array.from(tweetsTable.iter());
+
+    const mapped = rows.map((r: any) => {
+      const loc = r.location ?? r.geo ?? {};
+      const lat = (typeof loc.lat === "number" ? loc.lat : (r.latitude ?? r.lat));
+      const lon = (typeof loc.lon === "number" ? loc.lon : (r.longitude ?? r.lon));
+
+      const text = r.text ?? r.content ?? r.body ?? r.message ?? "";
+      const author = r.username ?? r.author?.userName ?? r.author?.username ?? "unknown";
+      const topic = r.topic ?? "";
+
+      return { topic, lon, lat, text, author };
+    });
+
+    res.json(mapped);
+  } catch (err) {
+    console.error("/api/flattened error:", err);
+    res.status(500).json({ error: "Failed to fetch flattened tweets" });
   }
 });
 
