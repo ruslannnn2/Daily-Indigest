@@ -1,17 +1,17 @@
-import React, { useEffect, useState } from 'react';
+import React, { useEffect } from 'react';
 import GlobeMapbox from '../components/GlobeMapbox';
 import Sidebar from '../components/Sidebar';
 import HoverInfoPanel from '../components/HoverInfoPanel';
 import SearchBar from '../components/SearchBar';
 
 // Default data URL if no specific data is provided
-const DEFAULT_DATA_URL = 'https://raw.githubusercontent.com/visgl/deck.gl-data/master/examples/screen-grid/uber-pickup-locations.json';
-
+// const DEFAULT_DATA_URL = 'https://raw.githubusercontent.com/visgl/deck.gl-data/master/examples/screen-grid/uber-pickup-locations.json';
+const DEFAULT_DATA_URL = 'http://localhost:3000/api/flattened';
 const Explorer: React.FC = () => {
   // Using a fixed data source for now - will be updated when fetching real data
   const data = DEFAULT_DATA_URL;
 
-  const [trends, setTrends] = useState<string[]>([]);
+  // const [trends, setTrends] = useState<string[]>([]);
 
   // Define initial view state to set orientation
   const initialViewState = {

@@ -9,10 +9,12 @@ const HoverInfoPanel: React.FC<HoverInfoPanelProps> = ({ className }) => {
   const [coordinates, setCoordinates] = useState<{
     x: number | null;
     y: number | null;
+    message: string | null;
     hasData: boolean;
   }>({
     x: null,
     y: null,
+    message: null,
     hasData: false
   });
 
@@ -32,7 +34,8 @@ const HoverInfoPanel: React.FC<HoverInfoPanelProps> = ({ className }) => {
         setCoordinates({
           x: args[1],
           y: args[2],
-          hasData: true
+          hasData: true,
+          message: args[3] || null
         });
       }
     };

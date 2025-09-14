@@ -18,14 +18,16 @@ type Tweet = {
 };
 
 // Your existing DataPoint type
-type DataPoint = {
+// Update your DataPoint type
+export type DataPoint = {
   latitude: number;
   longitude: number;
   intensity: number;
+  trend?: string; 
 };
 
 // Function to extract location data from a tweet
-function extractLocationData(tweet: Tweet): DataPoint | null {
+function extractLocationData(tweet: Tweet, trendName: string): DataPoint | null {
   // Check if the tweet has valid location data
   if (!tweet.location || 
       typeof tweet.location.lat !== 'number' || 
@@ -38,27 +40,30 @@ function extractLocationData(tweet: Tweet): DataPoint | null {
   return {
     latitude: tweet.location.lat,
     longitude: tweet.location.lon,
-    intensity: 1 // Default intensity, you can adjust based on some other metric if needed
+    intensity: Math.floor(Math.random() * 3) + 1, // Random intensity between 1-3
+    trend: trendName // Include the trend name
   };
 }
 
 // Build dataset for a specific trend
 export async function buildDatasetForTrend(trendName: string): Promise<DataPoint[]> {
   try {
-    const response = await fetch(`http://localhost:3000/api/tweets/${trendName}`);
+    const response = await fetch(`http://localhost:3000/api/flattened/${trendName}`);
     const tweets: Tweet[] = await response.json();
-    console.log(`Fetched ${tweets.length} tweets for trend: ${trendName}`);
+    
+    console.log(`Processing ${tweets.length} tweets for trend: ${trendName}`);
     
     const dataPoints: DataPoint[] = [];
     
     for (const tweet of tweets) {
-      const point = extractLocationData(tweet);
+      const point = extractLocationData(tweet, trendName);
       if (point) {
         dataPoints.push(point);
       }
     }
     
     console.log(`Generated ${dataPoints.length} data points for trend: ${trendName}`);
+    
     return dataPoints;
   } catch (error) {
     console.error(`Error building dataset for trend ${trendName}:`, error);
@@ -89,12 +94,28 @@ export async function buildDataset(): Promise<DataPoint[]> {
 }
 
 // Utility function to convert dataset to the format expected by ScreenGridLayer
-export function convertToScreenGridFormat(dataPoints: DataPoint[]): [number, number, number][] {
-  return dataPoints.map(point => [
-    point.longitude,  // longitude first for ScreenGridLayer
-    point.latitude,   // latitude second
-    point.intensity   // weight/intensity third
-  ]);
+// Updated to support trend filtering
+export function convertToScreenGridFormat(
+  dataPoints: DataPoint[], 
+  selectedTrends: string[] = []
+): [number, number, number][] {
+  // If no trends are selected, show all points
+  if (selectedTrends.length === 0) {
+    return dataPoints.map(point => [
+      point.longitude,
+      point.latitude,
+      point.intensity
+    ]);
+  }
+  
+
+  return dataPoints
+    .filter(point => point.trend && selectedTrends.includes(point.trend))
+    .map(point => [
+      point.longitude,
+      point.latitude,
+      point.intensity
+    ]);
 }
 
 // Function to get the center point of a dataset

@@ -1,4 +1,4 @@
-import React, { useRef, useMemo } from "react";
+import React, { useRef, useMemo, useEffect } from "react";
 import "maplibre-gl/dist/maplibre-gl.css";
 import { Map, useControl } from "react-map-gl/maplibre";
 import type { ViewState } from "react-map-gl/maplibre";
@@ -11,6 +11,15 @@ import { ScreenGridLayer } from "@deck.gl/aggregation-layers";
 // Define types
 type Color = [number, number, number, number];
 export type DataPoint = [longitude: number, latitude: number, count: number];
+
+// Define API data structure
+export interface APIDataPoint {
+  topic: string;
+  lon: number;
+  lat: number;
+  text: string;
+  author: string;
+}
 
 // Custom view state type with transition properties
 interface CustomViewState extends Partial<ViewState> {
@@ -52,7 +61,7 @@ export interface GlobeMapboxProps {
   globeOutlineWidth?: number;
   
   // Data visualization
-  data?: DataPoint[] | string; // Can be an array of data points or a URL string
+  data?: DataPoint[] | APIDataPoint[] | string; // Can be DataPoint[], APIDataPoint[], or a URL string
   colorRange?: Color[];
   opacity?: number;
   cellSize?: number;
@@ -120,7 +129,7 @@ const GlobeMapbox: React.FC<GlobeMapboxProps> = (props) => {
   }, [initialViewState]);
 
   // Helper function to handle different data input types
-  const getDataSource = (inputData: string | DataPoint[] | undefined): string | DataPoint[] => {
+  const getDataSource = (inputData: string | DataPoint[] | APIDataPoint[] | undefined): string | DataPoint[] | APIDataPoint[] => {
     if (!inputData || (Array.isArray(inputData) && inputData.length === 0)) {
       console.log("GlobeMapbox: No data provided, returning empty array");
       return []; // Return empty array if no data
@@ -143,12 +152,33 @@ const GlobeMapbox: React.FC<GlobeMapboxProps> = (props) => {
                 typeof dataSource === 'string' ? dataSource : `Array with ${dataSource.length} items`);
     
     return [
-      new ScreenGridLayer<DataPoint>({
+      new ScreenGridLayer({
         id: 'grid',
         data: dataSource,
         opacity,
-        getPosition: d => [d[0], d[1]],
-        getWeight: d => d[2],
+        getPosition: d => {
+          // Handle different data structures
+          if (Array.isArray(d)) {
+            // If it's our original array format [lon, lat, intensity]
+            return [d[0], d[1]];
+          } else if (d.lon !== undefined && d.lat !== undefined) {
+            // If it's from the API with lon/lat properties
+            return [d.lon, d.lat];
+          }
+          return [0, 0]; // Fallback
+        },
+        getWeight: d => {
+          // Generate a random but consistent weight between 1-3 based on a property of the data
+          // Use the last character of text or author as a seed for randomness
+          if (Array.isArray(d)) {
+            return d[2] || Math.floor(Math.random() * 3) + 1;
+          } else if (d.author) {
+            // Use the last character of the author's name to generate a consistent random number
+            const lastChar = d.author.charCodeAt(d.author.length - 1) || 1;
+            return (lastChar % 3) + 1; // Will return 1, 2, or 3
+          }
+          return Math.floor(Math.random() * 3) + 1; // Default random weight
+        },
         cellSizePixels: cellSize,
         colorRange,
         coordinateSystem: COORDINATE_SYSTEM.LNGLAT,
