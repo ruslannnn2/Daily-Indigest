@@ -41,5 +41,5 @@ An interactive visualization platform that maps tweets with location data and pr
 ## Acknowledgements
 A special thanks to to HopHacks 2025, Sponsors at SpacetimeDB, and Google Gemini
 
-##License
+## License
 Copyright (c) 2025 Ruslan Akmyradov, Daniel Yi
