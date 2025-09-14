@@ -1,4 +1,4 @@
-### The Daily Indigest
+# The Daily Indigest
 
 An interactive visualization platform that maps tweets with location data and provides AI-powered trend explanations including sentiment analysis through Gemini API. 
 
