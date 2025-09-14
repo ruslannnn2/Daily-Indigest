@@ -8,11 +8,15 @@ import { ApifyClient } from 'apify-client';
 import cors from "cors";
 import * as cheerio from "cheerio";
 import dotenv from "dotenv";
+import { GoogleGenerativeAI } from "@google/generative-ai";
+import { get } from "http";
 
 dotenv.config();
 
 const TOKEN = process.env.apify_token;
 const ACTOR = process.env.apify_actor;
+
+const genAI = new GoogleGenerativeAI(process.env.gemini_key || "");
 
 let db: any;
 const topicWatchers: Map<string, NodeJS.Timeout> = new Map();
@@ -396,6 +400,37 @@ async function init() {
         process.exit(1);
     }
 }
+
+function getTopicSelection(topic: string, count = 20): string[] {
+  if (!db) return [];
+
+  const tweetsTable = db.db.tweet;
+  const allTweets = Array.from(tweetsTable.iter()).filter((t) => t.topic === topic.replace(/\s+/g, "_"));
+
+  const shuffled = allTweets.sort(() => 0.5 - Math.random());
+  return shuffled.slice(0, count).map((t) => t.text);
+}
+
+async function summarizeGemini(topic: string) {
+  const tweets = getTopicSelection(topic, 20);
+  if (tweets.length === 0) return "No tweets available for this topic.";
+
+  const prompt = `You are a helpful assistant summarizing social media activity. Summarize the following ${tweets.length} tweets about the topic "${topic}". Summarize the main themes and what people are saying. Identify the general consensus or mood (positive, negative, mixed). If there are disagreements or distinct groups of opinions, describe them briefly. Tweets: ${tweets.join("\n")}`;
+  const model = genAI.getGenerativeModel({ model: "gemini-2.0-flash" });
+  const result = await model.generateContent(prompt);
+  return result.response.text();
+}
+
+app.get("/api/summary/:topic", async (req: Request, res: Response) => {
+  try {
+    const topic = decodeURIComponent(req.params.topic);
+    const summary = await summarizeGemini(topic);
+    res.json({ topic, summary });
+  } catch (err) {
+    console.error("Error summarizing topic:", err);
+    res.status(500).json({ error: "Failed to summarize topic" });
+  }
+});
 
 // Start the Express server
 const PORT = process.env.PORT || 3000;
