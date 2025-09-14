@@ -345,6 +345,30 @@ app.get("/api/tweets", (_req: Request, res: Response) => {
   }
 });
 
+app.get("/api/flattened/:topic", (req: Request, res: Response) => {
+  try {
+    if (!db) return res.status(500).json({ error: "no db"});
+    const topic = req.params.topic;
+    const tweetsTable = db.db.tweet;
+    const rows = Array.from(tweetsTable.iter()).filter(r => r.topic === topic.replace(/\s+/g, "_"));
+    const mapped = rows.map((r: any) => {
+      const loc = r.location ?? r.geo ?? {};
+      const lat = (typeof loc.lat === "number" ? loc.lat : (r.latitude ?? r.lat));
+      const lon = (typeof loc.lon === "number" ? loc.lon : (r.longitude ?? r.lon));
+
+      const text = r.text ?? r.content ?? r.body ?? r.message ?? "";
+      const author = r.username ?? r.author?.userName ?? r.author?.username ?? "unknown";
+      const topic = r.topic ?? "";
+
+      return { topic, lon, lat, text, author };
+    });
+    res.json(mapped);
+  } catch (err) {
+    console.error("/api/flattened/:topic error:", err);
+    res.status(500).json({ error: "Failed to fetch flattened tweets for topic" });
+  }
+});
+
 app.get("/api/flattened", (_req: Request, res: Response) => {
   try {
     if (!db) return res.status(500).json({ error: "no db"});
