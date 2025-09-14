@@ -3,6 +3,7 @@ import GlobeMapbox from '../components/GlobeMapbox';
 import Sidebar from '../components/Sidebar';
 import HoverInfoPanel from '../components/HoverInfoPanel';
 import SearchBar from '../components/SearchBar';
+import { GeminiExplanation } from '../components/GeminiExplanation';
 
 // Default data URL if no specific data is provided
 // const DEFAULT_DATA_URL = 'https://raw.githubusercontent.com/visgl/deck.gl-data/master/examples/screen-grid/uber-pickup-locations.json';
@@ -77,7 +78,10 @@ const Explorer: React.FC = () => {
       {/* Content layer with sidebar - positioned above the globe */}
       <div className="relative z-10 flex h-full w-full pointer-events-none">
         <div className="pointer-events-auto">
-          <Sidebar className="rounded-md h-[80vh] m-4 p-4 bg-opacity-50 backdrop-blur-md border border-gray-700/50" />
+          <Sidebar 
+            className="rounded-md h-[80vh] m-4 p-4 bg-opacity-50 backdrop-blur-md border border-gray-700/50"
+            onTopicSelect={setSelectedTopic}
+          />
         </div>
         
         {/* empty div to maintain flex */}
@@ -86,6 +90,10 @@ const Explorer: React.FC = () => {
         {/* Right panel with hover info */}
         <div className="pointer-events-auto mr-4 mt-4">
           <HoverInfoPanel className="w-64 h-auto" />
+          <GeminiExplanation 
+            topic={selectedTopic}
+            className="mt-4"
+          />
         </div>
       </div>
     </div>
