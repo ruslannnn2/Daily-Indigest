@@ -147,7 +147,7 @@ async function fetchTweets(db: any, topic: string) {
     const input = {
         "searchTerms": [topic],
         "maxItems": 100,
-        "since_time": Date.now() - 60,
+        "since_time": Date.now() - 300000,
     };
     
     try {
@@ -199,7 +199,7 @@ async function fetchTweets(db: any, topic: string) {
                         lat, 
                         lon,
                         createdAtMicros,
-                        topic
+                        topic.replace(/\s+/g, "_")
                     );
                 }
             } else {
@@ -256,7 +256,7 @@ function startWatcherForTopic(topic: string) {
   // repeating collection every minute
   const interval = setInterval(() => {
     fetchTweets(db, topic).catch(err => console.error(`[watcher:${topic}] interval fetch error`, err));
-  }, 60_000);
+  }, 300_000);
 
   topicWatchers.set(topic, interval);
 }
@@ -327,7 +327,7 @@ app.get("/api/tweets/:topic", (req: Request, res: Response) => {
     const tweetsTable = db.db.tweet;
     
     // Filter tweets by topic
-    const rows = Array.from(tweetsTable.iter()).filter(r => r.topic === topic);
+    const rows = Array.from(tweetsTable.iter()).filter(r => r.topic === topic.replace(/\s+/g, "_"));
     console.log(`Found ${rows.length} tweets for topic '${topic}'`);
     
     // Define a recursive function to handle nested BigInt values

@@ -7,6 +7,8 @@ from transformers import AutoModelForSeq2SeqLM, AutoTokenizer
 import csv
 from pathlib import Path
 import time
+import math
+import random
 
 # Initialize Flask app
 app = Flask(__name__)
@@ -37,6 +39,21 @@ CACHE_FILE = Path("geocache.csv")
 
 # Initialize cache
 _cache = {}
+
+def add_location_noise(coords: Tuple[float, float], max_km: float = 25) -> Tuple[float, float]:
+    if coords is None:
+        return None
+
+    lat, lon = coords
+
+    max_deg_lat = max_km / 111.0
+
+    angle = random.uniform(0, 2 * math.pi)
+    radius = random.uniform(0, max_deg_lat)
+    dlat = radius * math.cos(angle)
+    dlon = (radius * math.sin(angle)) / math.cos(math.radians(lat))
+
+    return lat + dlat, lon + dlon
 
 def load_cache():
     global _cache
@@ -147,7 +164,7 @@ def extract_location_endpoint():
         
         response_data = {
             'extracted_location': location,
-            'coordinates': coords,
+            'coordinates': add_location_noise(coords, max_km=25),
             'tweet_text': tweet_text,
             'location_context': location_context
         }
