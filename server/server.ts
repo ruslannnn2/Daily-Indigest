@@ -31,30 +31,6 @@ const client = new ApifyClient({
     token: TOKEN || "",
 });
 
-// Gemini explanation endpoint
-app.get("/api/explain/:topic", async (req, res) => {
-    try {
-        const { topic } = req.params;
-        const model = genAI.getGenerativeModel({ model: "gemini-pro" });
-        
-        const prompt = `Explain the current significance and context of the topic "${topic}" in 2-3 concise paragraphs. 
-                       Focus on why this topic is trending or noteworthy right now. 
-                       Keep the explanation informative but conversational.`;
-        
-        const result = await model.generateContent(prompt);
-        const response = await result.response;
-        const explanation = response.text();
-        
-        res.json({ explanation });
-    } catch (error) {
-        console.error("Gemini API error:", error);
-        res.status(500).json({ error: "Failed to generate explanation" });
-    }
-});
-
-console.log("started");
-
-// Define location-related field names (case-insensitive)
 const LOCATION_FIELDS = new Set([
     'location', 'place', 'city', 'state', 'country', 'address', 
     'geo', 'coordinates', 'lat', 'lon', 'latitude', 'longitude',
@@ -62,13 +38,11 @@ const LOCATION_FIELDS = new Set([
     'county', 'district', 'neighborhood', 'borough'
 ]);
 
-// Interface for location field results
 interface LocationField {
     path: string;
     value: any;
 }
 
-// Function to perform DFS and find location-related fields
 function findLocationFields(obj: any, currentPath: string = ""): LocationField[] {
     const results: LocationField[] = [];
     
@@ -157,8 +131,8 @@ async function connectSpacetime(): Promise<any> {
         .withUri("https://maincloud.spacetimedb.com")
         .withModuleName("tweetsv2")
         .onConnect((connection, identity, token) => {
-          console.log("✅ DB connected via onConnect");
-          resolve(connection); // resolve the promise when ready
+          console.log("DB connected via onConnect");
+          resolve(connection);
         })
         .build();
     } catch (err) {
@@ -273,7 +247,7 @@ async function updateTrends() {
 
 function startWatcherForTopic(topic: string) {
   if (topicWatchers.has(topic)) return; // already watching
-  console.log(`▶️ startWatcher: ${topic}`);
+  console.log(`startWatcher: ${topic}`);
 
   // immediate backfill (do not await — but catch errors)
   fetchTweets(db, topic).catch(err => console.error(`[watcher:${topic}] initial fetch error`, err));
@@ -287,7 +261,7 @@ function startWatcherForTopic(topic: string) {
 }
 
 async function stopWatcherForTopic(topic: string) {
-  console.log(`⏹ stopWatcher: ${topic}`);
+  console.log(`stopWatcher: ${topic}`);
   const interval = topicWatchers.get(topic);
   if (interval) {
     clearInterval(interval);
