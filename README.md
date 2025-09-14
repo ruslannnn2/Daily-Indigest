@@ -16,3 +16,24 @@ An interactive visualization platform that maps tweets with location data and pr
 - Google Gemini API for topic analysis
 - Apify for tweet collection API
 - Flask hosting a small FLAN model along with geocoding API for location guessing
+
+## Previews
+
+!["preview"](assets/preview.png "Preview")
+
+---
+
+!["preview2"](assets/preview2.png "Preview")
+
+## API Endpoints
+
+- `GET` /api/trends
+  - Returns an array of today's trending topics on twitter for the last hour
+- `GET` /api/tweets
+  - Returns all tweets collected on server
+- `GET` /api/tweets/:topic
+  - Returns a specific array of tweets tagged with a `topic`
+- `GET` /api/flattened
+  - Returns all tweets in a `topic, longitude, latitude, text, author` format
+- `GET` /api/flattened/:topic
+  - Returns all tweets in a `topic, longitude, latitude, text, author` format for a specific `topic`
