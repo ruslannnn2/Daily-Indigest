@@ -31,6 +31,27 @@ const client = new ApifyClient({
     token: TOKEN || "",
 });
 
+// Gemini explanation endpoint
+app.get("/api/explain/:topic", async (req, res) => {
+    try {
+        const { topic } = req.params;
+        const model = genAI.getGenerativeModel({ model: "gemini-pro" });
+        
+        const prompt = `Explain the current significance and context of the topic "${topic}" in 2-3 concise paragraphs. 
+                       Focus on why this topic is trending or noteworthy right now. 
+                       Keep the explanation informative but conversational.`;
+        
+        const result = await model.generateContent(prompt);
+        const response = await result.response;
+        const explanation = response.text();
+        
+        res.json({ explanation });
+    } catch (error) {
+        console.error("Gemini API error:", error);
+        res.status(500).json({ error: "Failed to generate explanation" });
+    }
+});
+
 console.log("started");
 
 // Define location-related field names (case-insensitive)
@@ -417,8 +438,8 @@ async function init() {
             console.error("Tweet subscription error:", err);
             })
             .subscribe(["SELECT * FROM tweet"]);
-        // await updateTrends();
-        // setInterval(updateTrends, 60_000_000);
+        await updateTrends();
+        setInterval(updateTrends, 60_000_000);
         // console.log("initialized");
     } catch (err) {
         console.error('error while initializing', err);

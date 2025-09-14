@@ -5,9 +5,10 @@ import { Button } from './ui/button';
 interface SidebarProps {
   className?: string;
   children?: React.ReactNode;
+  onTopicSelect?: (topic: string | null) => void;
 }
 
-export function Sidebar({ className }: SidebarProps) {
+export function Sidebar({ className, onTopicSelect }: SidebarProps) {
   const [collapsed, setCollapsed] = useState(false);
   const [trends, setTrends] = useState<string[]>([]);
   const [selectedTrend, setSelectedTrend] = useState<string | null>(null);
@@ -41,6 +42,7 @@ export function Sidebar({ className }: SidebarProps) {
   // Handle selecting a trend
   const handleSelectTrend = (trend: string) => {
     setSelectedTrend(trend);
+    onTopicSelect?.(trend);
     console.log(`Selected trend: ${trend}`);
     // Here you could add additional functionality like fetching data for this trend
   };
