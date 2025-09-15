@@ -2,6 +2,8 @@
 
 An interactive visualization platform that maps tweets with location data and provides AI-powered trend explanations including sentiment analysis through Gemini API. 
 
+Won 2nd place at HopHacks 2025 for Best Data-Driven Hack. Sponsored by Marshall Wace
+
 ## Features
 
 - Real-time tweet mapping with geographic visualization
